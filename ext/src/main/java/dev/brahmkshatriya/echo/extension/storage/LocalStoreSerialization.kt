@@ -5,11 +5,13 @@ import dev.brahmkshatriya.echo.common.models.ImageHolder
 import dev.brahmkshatriya.echo.common.models.ImageHolder.Companion.toImageHolder
 import kotlinx.serialization.json.*
 
+import dev.brahmkshatriya.echo.extension.utils.Extras
+
 internal fun JsonObjectBuilder.putCommonFields(item: EchoMediaItem) {
     put("id", item.id)
     put("title", item.title)
     item.subtitle?.let { put("subtitle", it) }
-    put("permaUrl", item.extras["permaUrl"] ?: "")
+    put("permaUrl", item.extras[Extras.PERMA_URL] ?: "")
     (item.cover as? ImageHolder.NetworkRequestImageHolder)?.request?.url?.let {
         put("coverUrl", it)
     }

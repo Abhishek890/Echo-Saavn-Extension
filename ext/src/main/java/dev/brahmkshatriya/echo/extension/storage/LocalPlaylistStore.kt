@@ -4,8 +4,10 @@ import dev.brahmkshatriya.echo.common.models.Date
 import dev.brahmkshatriya.echo.common.models.Playlist
 import kotlinx.serialization.json.*
 
+import dev.brahmkshatriya.echo.extension.utils.Extras
+
 object LocalPlaylistStore : LocalStore<Playlist>() {
-    override val key = "local_playlists"
+    override val key = StorageKeys.LOCAL_PLAYLISTS
 
     override fun serializeItem(item: Playlist, json: JsonObjectBuilder) {
         json.putCommonFields(item)
@@ -25,7 +27,7 @@ object LocalPlaylistStore : LocalStore<Playlist>() {
             isPrivate = obj["isPrivate"]?.jsonPrimitive?.booleanOrNull ?: false,
             description = obj["description"]?.jsonPrimitive?.content,
             creationDate = obj["creationDate"]?.jsonPrimitive?.longOrNull?.let { Date(it) },
-            extras = mapOf("permaUrl" to common.permaUrl)
+            extras = mapOf(Extras.PERMA_URL to common.permaUrl)
         )
     }
 }

@@ -4,8 +4,10 @@ import dev.brahmkshatriya.echo.common.models.Track
 import dev.brahmkshatriya.echo.common.settings.Settings
 import kotlinx.serialization.json.*
 
+import dev.brahmkshatriya.echo.extension.utils.Extras
+
 object LocalPlaylistTracksStore {
-    private const val KEY_PREFIX = "local_playlist_tracks_"
+    private const val KEY_PREFIX = StorageKeys.LOCAL_PLAYLIST_TRACKS_PREFIX
     private val json = Json { ignoreUnknownKeys = true; isLenient = true }
 
     fun getTracks(settings: Settings, playlistId: String): List<Track> {
@@ -67,7 +69,7 @@ object LocalPlaylistTracksStore {
             title = common.title,
             subtitle = common.subtitle,
             cover = common.cover,
-            extras = mapOf("permaUrl" to common.permaUrl),
+            extras = mapOf(Extras.PERMA_URL to common.permaUrl),
             streamables = emptyList()
         )
     }

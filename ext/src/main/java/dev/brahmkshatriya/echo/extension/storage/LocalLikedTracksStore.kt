@@ -4,8 +4,10 @@ import dev.brahmkshatriya.echo.common.models.Track
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonObjectBuilder
 
+import dev.brahmkshatriya.echo.extension.utils.Extras
+
 object LocalLikedTracksStore : LocalStore<Track>() {
-    override val key = "liked_tracks"
+    override val key = StorageKeys.LIKED_TRACKS
 
     override fun serializeItem(item: Track, json: JsonObjectBuilder) {
         json.putCommonFields(item)
@@ -18,7 +20,7 @@ object LocalLikedTracksStore : LocalStore<Track>() {
             title = common.title,
             subtitle = common.subtitle,
             cover = common.cover,
-            extras = mapOf("permaUrl" to common.permaUrl),
+            extras = mapOf(Extras.PERMA_URL to common.permaUrl),
             streamables = emptyList()
         )
     }

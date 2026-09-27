@@ -16,6 +16,7 @@ import dev.brahmkshatriya.echo.extension.parser.HomeSection
 import dev.brahmkshatriya.echo.extension.parser.MoreInfo
 import dev.brahmkshatriya.echo.extension.utils.LANGUAGES
 import dev.brahmkshatriya.echo.extension.utils.Logger
+import dev.brahmkshatriya.echo.extension.utils.runSafe
 
 class HomeFeedClientImpl(
     private val api: JioSaavnApi,
@@ -29,7 +30,7 @@ class HomeFeedClientImpl(
                 LANGUAGES.map { Tab(id = it.lowercase(), title = it) }
 
         return Feed(tabs) { tab ->
-            try {
+            runSafe("HomeClient", emptyList<Shelf>().toFeedData()) {
                 val language = when (tab?.id) {
                     "default", null -> defaultLanguages.joinToString(",")
                     else -> tab.id
@@ -37,13 +38,11 @@ class HomeFeedClientImpl(
                 val response = api.home.getHomeData(language)
                 val sections = parser.home.parseHomeSections(response)
                 val shelves = sections.map { section -> buildShelf(section, language) }
-                
+
                 shelves.toFeedData()
-            } catch (e: Exception) {
-                Logger.e("HomeClient", "Failed to load home feed", e)
-                emptyList<Shelf>().toFeedData()
             }
         }
+
     }
 
     private fun buildShelf(section: HomeSection, language: String): Shelf {
@@ -63,9 +62,10 @@ class HomeFeedClientImpl(
     private fun createMoreFeed(info: MoreInfo, language: String): Feed<Shelf> {
         return Feed(emptyList()) { _ ->
             Feed.Data(
+
                 PagedData.Continuous<Shelf> { continuation ->
                     val page = continuation?.toIntOrNull() ?: 1
-                    try {
+                    runSafe("HomeClient", Page(emptyList<Shelf>(), null)) {
                         val response = api.home.getMore(
                             api = info.api,
                             page = page,
@@ -75,13 +75,11 @@ class HomeFeedClientImpl(
                             language = language
                         )
                         val items = parser.home.parseMoreResponse(response)
-                        val nextContinuation = if (items.isNotEmpty()) (page + 1).toString() else null
+                        val nextContinuation = if (items.size >= info.defaultSize) (page + 1).toString() else null
                         Page(items, nextContinuation)
-                    } catch (e: Exception) {
-                        Logger.e("HomeClient", "Failed to load more for ${info.api}", e)
-                        Page(emptyList(), null)
                     }
                 }
+
             )
         }
     }

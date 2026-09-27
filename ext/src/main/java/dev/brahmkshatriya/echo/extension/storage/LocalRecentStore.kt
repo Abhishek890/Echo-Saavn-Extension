@@ -4,9 +4,11 @@ import dev.brahmkshatriya.echo.common.models.Track
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonObjectBuilder
 
+import dev.brahmkshatriya.echo.extension.utils.Extras
+
 object LocalRecentStore : LocalStore<Track>() {
-    override val key = "recent_tracks"
-    override val maxSize = 20
+    override val key = StorageKeys.RECENT_TRACKS
+    override val maxSize = StorageLimits.RECENT_MAX
 
     override fun getSortKey(): Long = System.currentTimeMillis()
 
@@ -21,7 +23,7 @@ object LocalRecentStore : LocalStore<Track>() {
             title = common.title,
             subtitle = common.subtitle,
             cover = common.cover,
-            extras = mapOf("permaUrl" to common.permaUrl),
+            extras = mapOf(Extras.PERMA_URL to common.permaUrl),
             streamables = emptyList()
         )
     }

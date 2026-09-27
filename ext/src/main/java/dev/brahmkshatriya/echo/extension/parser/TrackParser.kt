@@ -10,6 +10,7 @@ import kotlinx.serialization.json.*
 import dev.brahmkshatriya.echo.extension.utils.convertImageUrl
 import dev.brahmkshatriya.echo.extension.utils.parseDate
 import dev.brahmkshatriya.echo.extension.utils.parseDuration
+import dev.brahmkshatriya.echo.extension.utils.Extras
 
 class TrackParser : BaseParser() {
 
@@ -34,7 +35,7 @@ class TrackParser : BaseParser() {
                 label = moreInfo?.get("label")?.jsonPrimitive?.content,
                 isExplicit = obj["explicit_content"]?.jsonPrimitive?.content == "1",
                 extras = mapOf(
-                    "permaUrl" to (albumUrl ?: "")
+                    Extras.PERMA_URL to (albumUrl ?: "")
                 )
             )
         }
@@ -68,8 +69,8 @@ class TrackParser : BaseParser() {
             isExplicit = obj["explicit_content"]?.jsonPrimitive?.content == "1",
             subtitle = decodeHtml(obj["subtitle"]?.jsonPrimitive?.content ?: ""),
             extras = mapOf(
-                "permaUrl" to (obj["perma_url"]?.jsonPrimitive?.content ?: ""),
-                "otherArtistsJson" to (artistMap?.toString() ?: "{}"),
+                Extras.PERMA_URL to (obj["perma_url"]?.jsonPrimitive?.content ?: ""),
+                Extras.OTHER_ARTISTS to (artistMap?.toString() ?: "{}"),
                 "hasLyrics" to (moreInfo?.get("has_lyrics")?.jsonPrimitive?.content ?: "false"),
             ),
             streamables = streamables

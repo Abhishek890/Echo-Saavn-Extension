@@ -9,6 +9,7 @@ import kotlinx.serialization.json.*
 
 import dev.brahmkshatriya.echo.extension.utils.convertImageUrl
 import dev.brahmkshatriya.echo.extension.utils.Logger
+import dev.brahmkshatriya.echo.extension.utils.Extras
 
 class PlaylistParser(
     private val trackParser: TrackParser
@@ -30,7 +31,7 @@ class PlaylistParser(
             subtitle = decodeHtml(obj["subtitle"]?.jsonPrimitive?.content ?: ""),
             isLikeable = true,
             extras = mapOf(
-                "permaUrl" to (obj["perma_url"]?.jsonPrimitive?.content ?: ""),
+                Extras.PERMA_URL to (obj["perma_url"]?.jsonPrimitive?.content ?: ""),
             )
         )
     }
@@ -41,7 +42,7 @@ class PlaylistParser(
         } ?: emptyList()
     }
 
-    fun parsePlaylistSearchResults(obj: JsonObject): List<Playlist> {
+    fun parsePlaylistResults(obj: JsonObject): List<Playlist> {
         val results = obj["results"]?.jsonArray ?: return emptyList()
         return results.mapNotNull { parsePlaylistToPlaylist(it.jsonObject) }
     }
@@ -53,16 +54,6 @@ class PlaylistParser(
             Logger.e("PlaylistParser", "Failed to parse playlist details: ${e.message}", e)
             null
         }
-    }
-
-    fun parseRelatedPlaylists(response: JsonObject): List<Playlist> {
-        val results = response["results"]?.jsonArray ?: return emptyList()
-        return results.mapNotNull { parsePlaylistToPlaylist(it.jsonObject) }
-    }
-
-    fun parseTrendingPlaylists(response: JsonObject): List<Playlist> {
-        val array = response["results"]?.jsonArray ?: return emptyList()
-        return array.mapNotNull { parsePlaylistToPlaylist(it.jsonObject) }
     }
 
     fun parsePlaylistArtists(response: JsonObject): List<Artist> {

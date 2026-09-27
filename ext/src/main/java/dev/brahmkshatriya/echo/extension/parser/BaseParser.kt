@@ -6,6 +6,7 @@ import dev.brahmkshatriya.echo.common.models.ImageHolder.Companion.toImageHolder
 import kotlinx.serialization.json.*
 
 import dev.brahmkshatriya.echo.extension.utils.convertImageUrl
+import dev.brahmkshatriya.echo.extension.utils.Extras
 
 open class BaseParser {
     
@@ -48,7 +49,7 @@ open class BaseParser {
                 ?: obj["role"]?.jsonPrimitive?.content,
             isLikeable = true,
             extras = mapOf(
-                "permaUrl" to permaUrl,
+                Extras.PERMA_URL to permaUrl,
             )
         )
     }

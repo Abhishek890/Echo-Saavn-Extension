@@ -17,6 +17,7 @@ import dev.brahmkshatriya.echo.extension.JioSaavnParser
 import dev.brahmkshatriya.echo.extension.utils.Logger
 import dev.brahmkshatriya.echo.extension.api.ArtistApi.ArtistCategory
 import dev.brahmkshatriya.echo.extension.utils.getToken
+import dev.brahmkshatriya.echo.extension.utils.runSafe
 
 class ArtistClientImpl(
     private val api: JioSaavnApi,
@@ -40,30 +41,11 @@ class ArtistClientImpl(
         }
 
         // Try to get token from extras
-        var resolvedArtist = artist
         var token = artist.getToken()
 
-        // If token missing, search by name and match by artist.id
-        // In song suggestions, perma_url is empty, that's why
         if (token.isBlank()) {
-            Logger.d("ArtistClient", "Token missing for ${artist.name} (id=${artist.id}), searching by name")
-            val matchedArtist = findArtistByName(artist.name, artist.id)
-
-            if (matchedArtist == null) {
-                Logger.e("ArtistClient", "Could not find artist: ${artist.name} (id=${artist.id})")
-                return emptyList<Shelf>().toFeed()
-            }
-
-            // Use the matched artist (has permaUrl in extras)
-            resolvedArtist = matchedArtist
-            // Get token from permaUrl
-            token = resolvedArtist.getToken()
-            if (token.isBlank()) {
-                Logger.e("ArtistClient", "No token in permaUrl for: ${resolvedArtist.name}")
-                return emptyList<Shelf>().toFeed()
-            }
-
-            Logger.d("ArtistClient", "Resolved artist: ${matchedArtist.name} (token=$token)")
+            Logger.d("ArtistClient", "Token missing for ${artist.name} (id=${artist.id})")
+            return emptyList<Shelf>().toFeed()
         }
 
         // Fetch details using token
@@ -71,23 +53,10 @@ class ArtistClientImpl(
             token = token,
         )
 
-        val feed = buildFeed(resolvedArtist, response)
-        cachedArtistId = artist.id  // Cache by original ID
+        val feed = buildFeed(artist, response)
+        cachedArtistId = artist.id
         cachedFeed = feed
         return feed
-    }
-
-    private suspend fun findArtistByName(name: String, numericId: String): Artist? {
-        return try {
-            val response = api.artist.search(name, page = 1, limit = 10)
-            val artists = parser.artist.parseArtistSearchResults(response)
-
-            // Match by numeric ID (either in id or extras)
-            artists.firstOrNull { it.id == numericId }
-        } catch (e: Exception) {
-            Logger.e("ArtistClient", "Search failed for $name", e)
-            null
-        }
     }
 
     private fun buildFeed(artist: Artist, response: JsonObject): Feed<Shelf> {
@@ -207,13 +176,13 @@ class ArtistClientImpl(
             val page = continuation?.toIntOrNull() ?: 1
             Logger.d("ArtistClient", "buildMorePages.Continuous: page=$page, type=$type")
 
-            try {
+            runSafe("ArtistClient", Page(emptyList<Shelf>(), null)) {
                 val response = when (type) {
                     "songs" -> api.artist.getMoreSongs(artist.id, page, category)
                     "albums" -> api.artist.getMoreAlbums(artist.id, page, category)
                     else -> {
                         Logger.e("ArtistClient", "buildMorePages: unknown type=$type")
-                        return@Continuous Page(emptyList(), null)
+                        return@runSafe Page(emptyList(), null)
                     }
                 }
 
@@ -223,20 +192,14 @@ class ArtistClientImpl(
                     else -> emptyList()
                 }
 
-                Logger.d("ArtistClient", "buildMorePages: parsed ${items.size} items")
-
                 if (items.isEmpty()) {
-                    return@Continuous Page(emptyList(), null)
+                    return@runSafe Page(emptyList(), null)
                 }
 
-                // 10 items per page
                 val nextContinuation = if (items.size > 0) (page + 1).toString() else null
-                Logger.d("ArtistClient", "buildMorePages: nextContinuation=$nextContinuation")
                 Page(items, nextContinuation)
-            } catch (e: Exception) {
-                Logger.e("ArtistClient", "buildMorePages: exception", e)
-                Page(emptyList(), null)
             }
+
         }
     }
 

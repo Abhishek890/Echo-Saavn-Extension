@@ -78,7 +78,7 @@ class AlbumClientImpl(
         // ===== YOU MIGHT LIKE SHELF =====
         try {
             val recoResponse = api.album.getAlbumReco(album.id)
-            val recoAlbums = parser.album.parseAlbumReco(recoResponse)
+            val recoAlbums = parser.album.parseAlbumResults(recoResponse)
                 .filter { it.id != album.id }
 
             if (recoAlbums.isNotEmpty()) {
@@ -104,7 +104,7 @@ class AlbumClientImpl(
         if (!language_t.isNullOrBlank()) {
             try {
                 val trendingResponse = api.home.getTrending("album", language_t)
-                val trendingAlbums = parser.album.parseTrendingAlbums(trendingResponse)
+                val trendingAlbums = parser.album.parseAlbumResults(trendingResponse)
                     .filter { it.id != album.id }
 
                 if (trendingAlbums.isNotEmpty()) {
@@ -128,7 +128,7 @@ class AlbumClientImpl(
         if (!year.isNullOrBlank() && !language.isNullOrBlank()) {
             try {
                 val yearResponse = api.album.getTopAlbumsOfYear(year, language)
-                val yearAlbums = parser.album.parseTopAlbumsOfYear(yearResponse)
+                val yearAlbums = parser.album.parseAlbumResults(yearResponse)
                     .filter { it.id != album.id }
 
                 if (yearAlbums.isNotEmpty()) {

@@ -4,8 +4,10 @@ import dev.brahmkshatriya.echo.common.models.Playlist
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonObjectBuilder
 
+import dev.brahmkshatriya.echo.extension.utils.Extras
+
 object LocalLikedPlaylistsStore : LocalStore<Playlist>() {
-    override val key = "liked_playlists"
+    override val key = StorageKeys.LIKED_PLAYLISTS
 
     override fun serializeItem(item: Playlist, json: JsonObjectBuilder) {
         json.putCommonFields(item)
@@ -19,7 +21,7 @@ object LocalLikedPlaylistsStore : LocalStore<Playlist>() {
             subtitle = common.subtitle,
             cover = common.cover,
             isEditable = false,
-            extras = mapOf("permaUrl" to common.permaUrl)
+            extras = mapOf(Extras.PERMA_URL to common.permaUrl)
         )
     }
 }

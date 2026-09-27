@@ -20,18 +20,29 @@ object Logger {
             println("$PREFIX [I] [$tag] $message")
         }
     }
-    
+
     fun w(tag: String, message: String, throwable: Throwable? = null) {
         if (minLevel.priority <= LogLevel.WARN.priority) {
             println("$PREFIX [W] [$tag] $message")
-            throwable?.printStackTrace()
+            throwable?.let {
+                println("$PREFIX [W] [$tag] Stack trace:")
+                it.stackTraceToString().lines().forEach { line ->
+                    println("$PREFIX [W] [$tag]   $line")
+                }
+            }
         }
     }
-    
+
     fun e(tag: String, message: String, throwable: Throwable? = null) {
         if (minLevel.priority <= LogLevel.ERROR.priority) {
             println("$PREFIX [E] [$tag] $message")
-            throwable?.printStackTrace()
+            throwable?.let {
+                println("$PREFIX [E] [$tag] Stack trace:")
+                it.stackTraceToString().lines().forEach { line ->
+                    println("$PREFIX [E] [$tag]   $line")
+                }
+            }
         }
     }
+
 }

@@ -18,3 +18,17 @@ val LANGUAGES = listOf(
     "Odia",
     "Assamese"
 )
+
+object Extras {
+    const val PERMA_URL = "permaUrl"
+    const val OTHER_ARTISTS = "otherArtistsJson"
+    const val ARTIST_MAP = "artistMapJson"
+}
+
+object Prefixes {
+    const val LOCAL = "local_"
+    
+    fun newLocalId(): String = "$LOCAL${System.currentTimeMillis()}"
+    
+    fun isLocal(id: String): Boolean = id.startsWith(LOCAL)
+}

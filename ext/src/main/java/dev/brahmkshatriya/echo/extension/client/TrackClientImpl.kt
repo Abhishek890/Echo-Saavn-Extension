@@ -13,6 +13,7 @@ import dev.brahmkshatriya.echo.extension.JioSaavnParser
 import dev.brahmkshatriya.echo.extension.SaavnDependencies
 import dev.brahmkshatriya.echo.extension.utils.decryptUrl
 import dev.brahmkshatriya.echo.extension.utils.getToken
+import dev.brahmkshatriya.echo.extension.utils.Extras
 
 class TrackClientImpl(
     private val api: JioSaavnApi,
@@ -99,7 +100,7 @@ class TrackClientImpl(
 
             // ===== OTHER ARTISTS SHELF =====
             val otherArtists = parser.artist.parseOtherArtistsFromExtras(
-                track.extras["otherArtistsJson"]
+                track.extras[Extras.OTHER_ARTISTS]
             )
             if (otherArtists.isNotEmpty()) {
                 shelves.add(
@@ -122,7 +123,7 @@ class TrackClientImpl(
 
                 if (songs.isNotEmpty()) {
                     shelves.add(
-                        Shelf.Lists.Items(
+                        Shelf.Lists.Tracks(
                             id = "similar_tracks",
                             title = "Similar Tracks",
                             list = songs,
@@ -141,7 +142,7 @@ class TrackClientImpl(
 
                 if (otherTracks.isNotEmpty()) {
                     shelves.add(
-                        Shelf.Lists.Items(
+                        Shelf.Lists.Tracks(
                             id = "more_from_album",
                             title = "More from ${album.title}",  // ← Now smart-cast works
                             list = otherTracks,

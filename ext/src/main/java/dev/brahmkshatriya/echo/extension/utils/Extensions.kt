@@ -59,4 +59,18 @@ fun String?.extractToken(): String {
     return substringAfterLast("/").takeIf { it.isNotBlank() } ?: ""
 }
 
-fun EchoMediaItem.getToken(): String = extras["permaUrl"].extractToken()
+fun EchoMediaItem.getToken(): String = extras[Extras.PERMA_URL].extractToken()
+
+
+inline fun <T> runSafe(
+    tag: String,
+    fallback: T,
+    block: () -> T
+): T = try {
+    block()
+} catch (e: kotlinx.coroutines.CancellationException) {
+    throw e
+} catch (e: Exception) {
+    Logger.e(tag, "Failed", e)
+    fallback
+}

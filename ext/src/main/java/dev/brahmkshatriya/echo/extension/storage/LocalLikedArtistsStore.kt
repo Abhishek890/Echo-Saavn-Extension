@@ -4,8 +4,10 @@ import dev.brahmkshatriya.echo.common.models.Artist
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonObjectBuilder
 
+import dev.brahmkshatriya.echo.extension.utils.Extras
+
 object LocalLikedArtistsStore : LocalStore<Artist>() {
-    override val key = "liked_artists"
+    override val key = StorageKeys.LIKED_ARTISTS
 
     override fun serializeItem(item: Artist, json: JsonObjectBuilder) {
         json.putCommonFields(item)
@@ -18,7 +20,7 @@ object LocalLikedArtistsStore : LocalStore<Artist>() {
             name = common.title,  // Artist uses `name`
             subtitle = common.subtitle,
             cover = common.cover,
-            extras = mapOf("permaUrl" to common.permaUrl)
+            extras = mapOf(Extras.PERMA_URL to common.permaUrl)
         )
     }
 }

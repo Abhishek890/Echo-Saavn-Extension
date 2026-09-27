@@ -10,6 +10,7 @@ import dev.brahmkshatriya.echo.extension.storage.LocalPlaylistStore
 import dev.brahmkshatriya.echo.extension.storage.LocalPlaylistTracksStore
 import dev.brahmkshatriya.echo.extension.utils.Logger
 import dev.brahmkshatriya.echo.extension.utils.getToken
+import dev.brahmkshatriya.echo.extension.utils.Prefixes
 import kotlinx.serialization.json.*
 
 class PlaylistEditClientImpl(
@@ -29,7 +30,7 @@ class PlaylistEditClientImpl(
     // ===== LOAD PLAYLIST =====
     override suspend fun loadPlaylist(playlist: Playlist): Playlist {
         // Local playlist
-        if (playlist.id.startsWith("local_")) {
+        if (Prefixes.isLocal(playlist.id)) {
             return playlist.copy(isEditable = true)
         }
 
@@ -56,7 +57,7 @@ class PlaylistEditClientImpl(
     // ===== LOAD TRACKS =====
     override suspend fun loadTracks(playlist: Playlist): Feed<Track> {
         // Local playlist
-        if (playlist.id.startsWith("local_")) {
+        if (Prefixes.isLocal(playlist.id)) {
             val settings = settings ?: return emptyList<Track>().toFeed() as Feed<Track>
             val tracks = LocalPlaylistTracksStore.getTracks(settings, playlist.id)
             return tracks.toFeed() as Feed<Track>
@@ -78,7 +79,7 @@ class PlaylistEditClientImpl(
         // ===== RELATED PLAYLISTS =====
         try {
             val recoResponse = api.playlist.getPlaylistReco(playlist.id)
-            val relatedPlaylists = parser.playlist.parseRelatedPlaylists(recoResponse)
+            val relatedPlaylists = parser.playlist.parsePlaylistResults(recoResponse)
                 .filter { it.id != playlist.id }
 
             if (relatedPlaylists.isNotEmpty()) {
@@ -104,7 +105,7 @@ class PlaylistEditClientImpl(
         if (!language.isNullOrBlank()) {
             try {
                 val trendingResponse = api.home.getTrending("playlist", language)
-                val trendingPlaylists = parser.playlist.parseTrendingPlaylists(trendingResponse)
+                val trendingPlaylists = parser.playlist.parsePlaylistResults(trendingResponse)
                     .filter { it.id != playlist.id }
 
                 if (trendingPlaylists.isNotEmpty()) {
@@ -157,7 +158,7 @@ class PlaylistEditClientImpl(
     override suspend fun createPlaylist(title: String, description: String?): Playlist {
         val settings = settings ?: throw Exception("Settings unavailable")
         val playlist = Playlist(
-            id = "local_${System.currentTimeMillis()}",
+            id = Prefixes.newLocalId(),
             title = title,
             isEditable = true,
             isPrivate = false,

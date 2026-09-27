@@ -82,14 +82,16 @@ class HomeParser(
             else -> null
         }
     }
-    
+
     fun parseMoreResponse(response: JsonObject): List<Shelf.Item> {
-        val array = response["results"]?.jsonArray
-            ?: response["data"]?.jsonArray
+        val array = (response["results"] as? JsonArray)
+            ?: (response["data"] as? JsonArray)
             ?: return emptyList()
-        
+
         return array.mapNotNull { element ->
-            parseHomeItem(element.jsonObject)?.toShelf()
+            val obj = element as? JsonObject ?: return@mapNotNull null
+            parseHomeItem(obj)?.toShelf()
         }
     }
+
 }

@@ -9,6 +9,7 @@ import kotlinx.serialization.json.*
 import dev.brahmkshatriya.echo.extension.utils.convertImageUrl
 import dev.brahmkshatriya.echo.extension.utils.parseDate
 import dev.brahmkshatriya.echo.extension.utils.Logger
+import dev.brahmkshatriya.echo.extension.utils.Extras
 
 class AlbumParser(
     private val trackParser: TrackParser
@@ -35,8 +36,8 @@ class AlbumParser(
             subtitle = decodeHtml(obj["subtitle"]?.jsonPrimitive?.content ?: ""),
             isLikeable = true,
             extras = mapOf(
-                "permaUrl" to (obj["perma_url"]?.jsonPrimitive?.content ?: ""),
-                "artistMapJson" to (artistMap?.toString() ?: "{}")
+                Extras.PERMA_URL to (obj["perma_url"]?.jsonPrimitive?.content ?: ""),
+                Extras.ARTIST_MAP to (artistMap?.toString() ?: "{}")
             )
         )
     }
@@ -47,8 +48,8 @@ class AlbumParser(
         } ?: emptyList()
     }
 
-    fun parseAlbumSearchResults(obj: JsonObject): List<Album> {
-        val results = obj["results"]?.jsonArray ?: return emptyList()
+    fun parseAlbumResults(response: JsonObject): List<Album> {
+        val results = response["results"]?.jsonArray ?: return emptyList()
         return results.mapNotNull { parseAlbumToAlbum(it.jsonObject) }
     }
 
@@ -61,18 +62,4 @@ class AlbumParser(
         }
     }
 
-    fun parseTrendingAlbums(response: JsonObject): List<Album> {
-        val array = response["results"]?.jsonArray ?: return emptyList()
-        return array.mapNotNull { parseAlbumToAlbum(it.jsonObject) }
-    }
-
-    fun parseTopAlbumsOfYear(response: JsonObject): List<Album> {
-        val results = response["results"]?.jsonArray ?: return emptyList()
-        return results.mapNotNull { parseAlbumToAlbum(it.jsonObject) }
-    }
-
-    fun parseAlbumReco(response: JsonObject): List<Album> {
-        val results = response["results"]?.jsonArray ?: return emptyList()
-        return results.mapNotNull { parseAlbumToAlbum(it.jsonObject) }
-    }
 }

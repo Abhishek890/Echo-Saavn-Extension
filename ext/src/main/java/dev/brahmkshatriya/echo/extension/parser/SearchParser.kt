@@ -10,6 +10,7 @@ import dev.brahmkshatriya.echo.common.models.ImageHolder.Companion.toImageHolder
 import kotlinx.serialization.json.*
 
 import dev.brahmkshatriya.echo.extension.utils.convertImageUrl
+import dev.brahmkshatriya.echo.extension.utils.Extras
 
 class SearchParser : BaseParser() {
 
@@ -36,7 +37,7 @@ class SearchParser : BaseParser() {
         val title = decodeHtml(obj["title"]?.jsonPrimitive?.content ?: "")
         val subtitle = decodeHtml(obj["subtitle"]?.jsonPrimitive?.content ?: "")
         val cover = convertImageUrl(obj["image"]?.jsonPrimitive?.content).toImageHolder()
-        val extras = mapOf("permaUrl" to permaUrl)
+        val extras = mapOf(Extras.PERMA_URL to permaUrl)
 
         return when (type) {
             "song" -> Track(

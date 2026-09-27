@@ -45,7 +45,7 @@ class QuickSearchClientImpl(
         val albumsDeferred = async {
             try {
                 val response = api.album.search(query, page = 1, limit = limit)
-                parser.album.parseAlbumSearchResults(response)
+                parser.album.parseAlbumResults(response)
             } catch (e: Exception) { emptyList() }
         }
         
@@ -59,7 +59,7 @@ class QuickSearchClientImpl(
         val playlistsDeferred = async {
             try {
                 val response = api.playlist.search(query, page = 1, limit = limit)
-                parser.playlist.parsePlaylistSearchResults(response)
+                parser.playlist.parsePlaylistResults(response)
             } catch (e: Exception) { emptyList() }
         }
         
@@ -105,7 +105,7 @@ class QuickSearchClientImpl(
         val shelves = mutableListOf<Shelf>()
         
         if (results.songs.isNotEmpty()) {
-            shelves.add(Shelf.Lists.Tracks(
+            shelves.add(Shelf.Lists.Items(
                 id = "search_songs",
                 title = "Songs",
                 list = results.songs
@@ -173,7 +173,7 @@ class QuickSearchClientImpl(
         val page = continuation?.toIntOrNull() ?: 1
         try {
             val response = api.album.search(query, page = page, limit = 20)
-            val albums = parser.album.parseAlbumSearchResults(response)
+            val albums = parser.album.parseAlbumResults(response)
             
             val items = albums.map { it.toShelf() }
             val nextContinuation = if (albums.size >= 20) (page + 1).toString() else null
@@ -201,7 +201,7 @@ class QuickSearchClientImpl(
         val page = continuation?.toIntOrNull() ?: 1
         try {
             val response = api.playlist.search(query, page = page, limit = 20)
-            val playlists = parser.playlist.parsePlaylistSearchResults(response)
+            val playlists = parser.playlist.parsePlaylistResults(response)
             
             val items = playlists.map { it.toShelf() }
             val nextContinuation = if (playlists.size >= 20) (page + 1).toString() else null
