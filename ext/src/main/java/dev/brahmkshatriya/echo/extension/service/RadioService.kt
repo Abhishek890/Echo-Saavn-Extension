@@ -42,6 +42,7 @@ class RadioService(
                 if (stationId != null) {
                     cachedSongId = songId
                     cachedStationId = stationId
+                    cachedTracks = null
                 }
                 Logger.d("RadioService", "Station for $songId: $stationId")
                 stationId
