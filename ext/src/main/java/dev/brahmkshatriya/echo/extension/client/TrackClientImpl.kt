@@ -3,6 +3,7 @@ package dev.brahmkshatriya.echo.extension.client
 import dev.brahmkshatriya.echo.common.clients.TrackClient
 import dev.brahmkshatriya.echo.common.models.Track
 import dev.brahmkshatriya.echo.common.models.Feed
+import dev.brahmkshatriya.echo.common.models.Feed.Buttons
 import dev.brahmkshatriya.echo.common.models.Shelf
 import dev.brahmkshatriya.echo.common.models.Streamable
 import dev.brahmkshatriya.echo.common.models.Feed.Companion.toFeed
@@ -123,7 +124,8 @@ class TrackClientImpl(
 
                 if (songs.isNotEmpty()) {
                     shelves.add(
-                        Shelf.Lists.Tracks(
+                        // TODO: Change to Lists.Tracks when No item found issue is fixed in Echo
+                        Shelf.Lists.Items(
                             id = "similar_tracks",
                             title = "Similar Tracks",
                             list = songs,
@@ -142,7 +144,7 @@ class TrackClientImpl(
 
                 if (otherTracks.isNotEmpty()) {
                     shelves.add(
-                        Shelf.Lists.Tracks(
+                        Shelf.Lists.Items(
                             id = "more_from_album",
                             title = "More from ${album.title}",  // ← Now smart-cast works
                             list = otherTracks,
@@ -152,7 +154,7 @@ class TrackClientImpl(
                 }
             }
 
-            shelves.toFeed()
+            shelves.toFeed(buttons = Buttons.EMPTY)
         } catch (e: Exception) {
             emptyList<Shelf>().toFeed()
         }

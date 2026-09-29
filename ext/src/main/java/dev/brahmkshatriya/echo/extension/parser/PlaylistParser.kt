@@ -30,6 +30,7 @@ class PlaylistParser(
             trackCount = songCount.toLongOrNull(),
             subtitle = decodeHtml(obj["subtitle"]?.jsonPrimitive?.content ?: ""),
             isLikeable = true,
+            isRadioSupported = false,
             extras = mapOf(
                 Extras.PERMA_URL to (obj["perma_url"]?.jsonPrimitive?.content ?: ""),
             )

@@ -48,6 +48,7 @@ open class BaseParser {
             subtitle = obj["subtitle"]?.jsonPrimitive?.content
                 ?: obj["role"]?.jsonPrimitive?.content,
             isLikeable = true,
+            isRadioSupported = false,
             extras = mapOf(
                 Extras.PERMA_URL to permaUrl,
             )

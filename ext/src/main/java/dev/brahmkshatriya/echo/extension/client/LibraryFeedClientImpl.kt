@@ -23,7 +23,8 @@ class LibraryFeedClientImpl : LibraryFeedClient {
 
         val recent = LocalRecentStore.getAll(settings)
         if (recent.isNotEmpty()) {
-            shelves.add(Shelf.Lists.Tracks(
+            // TODO: Change to Lists.Tracks when No item found issue is fixed in Echo
+            shelves.add(Shelf.Lists.Items(
                 id = "recent_tracks",
                 title = "Recently Played",
                 list = recent,
@@ -43,7 +44,8 @@ class LibraryFeedClientImpl : LibraryFeedClient {
 
         val tracks = LocalLikedTracksStore.getAll(settings)
         if (tracks.isNotEmpty()) {
-            shelves.add(Shelf.Lists.Tracks(
+            // TODO: Change to Lists.Tracks when No item found issue is fixed in Echo
+            shelves.add(Shelf.Lists.Items(
                 id = "liked_tracks",
                 title = "Liked Songs",
                 list = tracks,

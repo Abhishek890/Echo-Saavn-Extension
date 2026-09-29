@@ -37,6 +37,7 @@ class SaavnExtension : ExtensionClient,
     ArtistClient by ArtistClientImpl(SaavnDependencies.api, SaavnDependencies.parser),
     LibraryFeedClient by LibraryFeedClientImpl(),
     PlaylistEditClient by PlaylistEditClientImpl(SaavnDependencies.api, SaavnDependencies.parser),
+    RadioClient by RadioClientImpl(SaavnDependencies.api, SaavnDependencies.parser),
     TrackerClient,
     LikeClient by LikeClientImpl(),
     ShareClient by ShareClientImpl() {

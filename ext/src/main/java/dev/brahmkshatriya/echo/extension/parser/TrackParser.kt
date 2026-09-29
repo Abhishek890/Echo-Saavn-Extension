@@ -24,7 +24,7 @@ class TrackParser : BaseParser() {
 
         // Album
         val albumUrl = moreInfo?.get("album_url")?.jsonPrimitive?.content ?: ""
-        val albumId = moreInfo?.get("album_id")?.jsonPrimitive?.content ?: ""
+        val albumId = moreInfo?.get("album_id")?.jsonPrimitive?.content?.takeIf { it.isNotBlank() }
         val albumTitle = moreInfo?.get("album")?.jsonPrimitive?.content ?: ""
         val image = obj["image"]?.jsonPrimitive?.content ?: ""
         val album = albumId?.let {

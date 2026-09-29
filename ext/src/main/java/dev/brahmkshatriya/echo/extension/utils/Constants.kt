@@ -23,6 +23,7 @@ object Extras {
     const val PERMA_URL = "permaUrl"
     const val OTHER_ARTISTS = "otherArtistsJson"
     const val ARTIST_MAP = "artistMapJson"
+    const val STATION_ID = "stationId"
 }
 
 object Prefixes {
