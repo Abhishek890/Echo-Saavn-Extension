@@ -4,17 +4,30 @@ import dev.brahmkshatriya.echo.common.clients.*
 import dev.brahmkshatriya.echo.common.settings.*
 import dev.brahmkshatriya.echo.common.models.Track
 import dev.brahmkshatriya.echo.common.models.TrackDetails
+import dev.brahmkshatriya.echo.common.models.Album
 
 import kotlinx.serialization.json.JsonObject
+import kotlinx.coroutines.Deferred
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import java.util.concurrent.ConcurrentHashMap
 
 import dev.brahmkshatriya.echo.extension.client.*
 import dev.brahmkshatriya.echo.extension.utils.LANGUAGES
 import dev.brahmkshatriya.echo.extension.storage.LocalRecentStore
+import dev.brahmkshatriya.echo.extension.service.RadioService
+import dev.brahmkshatriya.echo.extension.service.AlbumService
 import dev.brahmkshatriya.echo.extension.utils.Logger
 
 object SaavnDependencies {
     val api by lazy { JioSaavnApi() }
     val parser by lazy { JioSaavnParser() }
+
+    val appScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+
+    val radioService by lazy { RadioService(api, parser, appScope) }
+    val albumService by lazy { AlbumService(api, parser, appScope) }
 
     var settings: Settings? = null
 
@@ -23,21 +36,22 @@ object SaavnDependencies {
         return value?.toList() ?: listOf("hindi")
     }
 
-    // Album cache
-    var cachedAlbumId: String? = null
-    var cachedAlbumResponse: JsonObject? = null
-    var cachedAlbumTracks: List<Track>? = null
+    val inflightTrackLoads = ConcurrentHashMap<String, Deferred<Track>>()
+
+    // Track cache
+    var cachedTrackId: String? = null
+    var cachedTrack: Track? = null
 }
 
 class SaavnExtension : ExtensionClient,
     QuickSearchClient by QuickSearchClientImpl(SaavnDependencies.api, SaavnDependencies.parser),
     HomeFeedClient by HomeFeedClientImpl(SaavnDependencies.api, SaavnDependencies.parser),
-    TrackClient by TrackClientImpl(SaavnDependencies.api, SaavnDependencies.parser),
-    AlbumClient by AlbumClientImpl(SaavnDependencies.api, SaavnDependencies.parser),
+    TrackClient by TrackClientImpl(SaavnDependencies.api, SaavnDependencies.parser, SaavnDependencies.radioService, SaavnDependencies.albumService),
+    AlbumClient by AlbumClientImpl(SaavnDependencies.api, SaavnDependencies.parser, SaavnDependencies.albumService),
     ArtistClient by ArtistClientImpl(SaavnDependencies.api, SaavnDependencies.parser),
     LibraryFeedClient by LibraryFeedClientImpl(),
     PlaylistEditClient by PlaylistEditClientImpl(SaavnDependencies.api, SaavnDependencies.parser),
-    RadioClient by RadioClientImpl(SaavnDependencies.api, SaavnDependencies.parser),
+    RadioClient by RadioClientImpl(SaavnDependencies.radioService),
     TrackerClient,
     LikeClient by LikeClientImpl(),
     ShareClient by ShareClientImpl() {

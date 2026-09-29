@@ -9,24 +9,51 @@ import dev.brahmkshatriya.echo.common.models.Streamable
 import dev.brahmkshatriya.echo.common.models.Feed.Companion.toFeed
 import dev.brahmkshatriya.echo.common.models.NetworkRequest.Companion.toGetRequest
 
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
+
 import dev.brahmkshatriya.echo.extension.JioSaavnApi
 import dev.brahmkshatriya.echo.extension.JioSaavnParser
 import dev.brahmkshatriya.echo.extension.SaavnDependencies
+import dev.brahmkshatriya.echo.extension.service.RadioService
+import dev.brahmkshatriya.echo.extension.service.AlbumService
 import dev.brahmkshatriya.echo.extension.utils.decryptUrl
 import dev.brahmkshatriya.echo.extension.utils.getToken
 import dev.brahmkshatriya.echo.extension.utils.Extras
 
 class TrackClientImpl(
     private val api: JioSaavnApi,
-    private val parser: JioSaavnParser
+    private val parser: JioSaavnParser,
+    private val radioService: RadioService,
+    private val albumService: AlbumService
 ) : TrackClient {
 
-    override suspend fun loadTrack(track: Track, isDownload: Boolean): Track {
-        val token = track.getToken()
-        val response = api.track.getDetails(token)
 
-        // Parse from "songs" array
-        return parser.track.parseSongDetails(response).firstOrNull() ?: track
+    override suspend fun loadTrack(track: Track, isDownload: Boolean): Track {
+        // Cache hit
+        if (SaavnDependencies.cachedTrackId == track.id && SaavnDependencies.cachedTrack != null) {
+            return SaavnDependencies.cachedTrack!!
+        }
+
+        // In-flight check + start
+        val deferred = SaavnDependencies.inflightTrackLoads.computeIfAbsent(track.id) {
+            SaavnDependencies.appScope.async {
+                val token = track.getToken()
+                val response = api.track.getDetails(token)
+                val parsed = parser.track.parseSongDetails(response).firstOrNull() ?: track
+
+                SaavnDependencies.cachedTrackId = track.id
+                SaavnDependencies.cachedTrack = parsed
+
+                parsed
+            }
+        }
+
+        return try {
+            deferred.await()
+        } finally {
+            SaavnDependencies.inflightTrackLoads.remove(track.id)
+        }
     }
 
     override suspend fun loadStreamableMedia(
@@ -116,37 +143,38 @@ class TrackClientImpl(
 
             // ===== SIMILAR TRACKS SHELF =====
             val songId = track.id
-            val response = api.radio.createSongStation(songId)
-            val stationId = parser.radio.parseStationId(response)
-            if (stationId != null) {
-                val suggestionsResponse = api.radio.getSongSuggestions(stationId, limit = 20)
-                val songs = parser.radio.parseSongSuggestions(suggestionsResponse)
+            val songs = radioService.getRadioTracks(songId, limit = 20)
 
-                if (songs.isNotEmpty()) {
-                    shelves.add(
-                        // TODO: Change to Lists.Tracks when No item found issue is fixed in Echo
-                        Shelf.Lists.Items(
-                            id = "similar_tracks",
-                            title = "Similar Tracks",
-                            list = songs,
-                            subtitle = "You might also like"
-                        )
+            if (songs.isNotEmpty()) {
+                shelves.add(
+                    // TODO: Change to Lists.Tracks when No item found issue is fixed in Echo
+                    Shelf.Lists.Items(
+                        id = "similar_tracks",
+                        title = "Similar Tracks",
+                        list = songs,
+                        subtitle = "You might also like"
                     )
-                }
+                )
             }
 
             // ===== MORE FROM ALBUM SHELF =====
             val album = track.album
-            val albumId = album?.id
-            if (albumId != null && SaavnDependencies.cachedAlbumId == albumId) {
-                val albumTracks = SaavnDependencies.cachedAlbumTracks ?: emptyList()
+            if (album != null) {
+                // Ensure album is loaded
+                try {
+                    albumService.loadAlbum(album)
+                } catch (e: Exception) {
+                    // logged inside service
+                }
+
+                val albumTracks = albumService.getCachedTracks(album.id) ?: emptyList()
                 val otherTracks = albumTracks.filter { it.id != track.id }
 
                 if (otherTracks.isNotEmpty()) {
                     shelves.add(
                         Shelf.Lists.Items(
                             id = "more_from_album",
-                            title = "More from ${album.title}",  // ← Now smart-cast works
+                            title = "More from ${album.title}",
                             list = otherTracks,
                             subtitle = "${otherTracks.size} tracks"
                         )

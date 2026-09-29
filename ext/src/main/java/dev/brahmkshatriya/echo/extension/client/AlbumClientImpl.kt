@@ -1,61 +1,34 @@
 package dev.brahmkshatriya.echo.extension.client
 
 import dev.brahmkshatriya.echo.common.clients.AlbumClient
-import dev.brahmkshatriya.echo.common.models.Track
+import dev.brahmkshatriya.echo.common.models.Album
 import dev.brahmkshatriya.echo.common.models.Feed
 import dev.brahmkshatriya.echo.common.models.Shelf
-import dev.brahmkshatriya.echo.common.models.Album
+import dev.brahmkshatriya.echo.common.models.Track
 import dev.brahmkshatriya.echo.common.models.Feed.Companion.toFeed
-
-import kotlinx.serialization.json.*
-
 import dev.brahmkshatriya.echo.extension.JioSaavnApi
 import dev.brahmkshatriya.echo.extension.JioSaavnParser
-import dev.brahmkshatriya.echo.extension.SaavnDependencies
+import dev.brahmkshatriya.echo.extension.service.AlbumService
 import dev.brahmkshatriya.echo.extension.utils.Logger
-import dev.brahmkshatriya.echo.extension.utils.getToken
+import kotlinx.serialization.json.*
 
 class AlbumClientImpl(
     private val api: JioSaavnApi,
-    private val parser: JioSaavnParser
+    private val parser: JioSaavnParser,
+    private val albumService: AlbumService
 ) : AlbumClient {
 
-    private var cachedAlbumId: String? = null
-    private var cachedResponse: JsonObject? = null
-    private var cachedAlbum: Album? = null
-
-    // ===== LOAD ALBUM =====
-    // Fetches full details, caches response and enriched album
     override suspend fun loadAlbum(album: Album): Album {
-        // Cache hit
-        if (SaavnDependencies.cachedAlbumId == album.id && SaavnDependencies.cachedAlbumResponse != null) {
-            return SaavnDependencies.cachedAlbumResponse.let { parser.album.parseAlbumToAlbum(it!!) } ?: album
-        }
-
-        // Fetch, parse, cache
-        val token = album.getToken()
-        val response = api.album.getDetails(token)
-        val parsedAlbum = parser.album.parseAlbumToAlbum(response) ?: album
-        val tracks = parser.album.parseAlbumTracks(response)
-
-        SaavnDependencies.cachedAlbumId = album.id
-        SaavnDependencies.cachedAlbumResponse = response
-        SaavnDependencies.cachedAlbumTracks = tracks
-
-        return parsedAlbum
+        return albumService.loadAlbum(album)
     }
 
     override suspend fun loadTracks(album: Album): Feed<Track>? {
-        // Cache hit
-        if (SaavnDependencies.cachedAlbumId == album.id && SaavnDependencies.cachedAlbumTracks != null) {
-            return SaavnDependencies.cachedAlbumTracks!!.toFeed() as Feed<Track>
-        }
-        return null
+        val tracks = albumService.getCachedTracks(album.id) ?: return null
+        return tracks.toFeed() as Feed<Track>
     }
 
     override suspend fun loadFeed(album: Album): Feed<Shelf>? {
-        val response = SaavnDependencies.cachedAlbumResponse.takeIf { SaavnDependencies.cachedAlbumId == album.id }
-            ?: return null
+        val response = albumService.getCachedResponse(album.id) ?: return null
 
         val shelves = mutableListOf<Shelf>()
 
@@ -148,5 +121,4 @@ class AlbumClientImpl(
 
         return if (shelves.isEmpty()) null else shelves.toFeed()
     }
-
 }
