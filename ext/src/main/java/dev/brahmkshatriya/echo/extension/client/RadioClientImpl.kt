@@ -11,6 +11,7 @@ import dev.brahmkshatriya.echo.extension.utils.Extras
 import dev.brahmkshatriya.echo.extension.utils.Logger
 import dev.brahmkshatriya.echo.extension.utils.runSafe
 import dev.brahmkshatriya.echo.extension.service.RadioService
+import dev.brahmkshatriya.echo.extension.SaavnDependencies
 
 /*
  * We are supporting radio only for tracks
@@ -22,6 +23,14 @@ class RadioClientImpl(
 ) : RadioClient {
 
     override suspend fun radio(item: EchoMediaItem, context: EchoMediaItem?): Radio {
+        if (!SaavnDependencies.isAutoRadioEnabled()) {
+            return Radio(
+                id = "radio_disabled_${item.id}",
+                title = "",
+                extras = emptyMap()
+            )
+        }
+
         if (item !is Track) throw Exception("Radio only supported for tracks")
 
         val songId = item.id

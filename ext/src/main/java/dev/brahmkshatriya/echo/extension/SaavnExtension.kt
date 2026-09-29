@@ -6,7 +6,6 @@ import dev.brahmkshatriya.echo.common.models.Track
 import dev.brahmkshatriya.echo.common.models.TrackDetails
 import dev.brahmkshatriya.echo.common.models.Album
 
-import kotlinx.serialization.json.JsonObject
 import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -19,6 +18,7 @@ import dev.brahmkshatriya.echo.extension.storage.LocalRecentStore
 import dev.brahmkshatriya.echo.extension.service.RadioService
 import dev.brahmkshatriya.echo.extension.service.AlbumService
 import dev.brahmkshatriya.echo.extension.utils.Logger
+import dev.brahmkshatriya.echo.extension.utils.SettingsKeys
 
 object SaavnDependencies {
     val api by lazy { JioSaavnApi() }
@@ -32,9 +32,12 @@ object SaavnDependencies {
     var settings: Settings? = null
 
     fun getDefaultLanguages(): List<String> {
-        val value = settings?.getStringSet("default_home_languages")
+        val value = settings?.getStringSet(SettingsKeys.DEFAULT_HOME_LANGUAGES)
         return value?.toList() ?: listOf("hindi")
     }
+
+    fun isAutoRadioEnabled(): Boolean =
+        settings?.getBoolean(SettingsKeys.AUTO_RADIO_ENABLED) ?: true
 
     val inflightTrackLoads = ConcurrentHashMap<String, Deferred<Track>>()
 
@@ -58,7 +61,6 @@ class SaavnExtension : ExtensionClient,
 
     private lateinit var settings: Settings
 
-
     override suspend fun getSettingItems(): List<Setting> {
         return listOf(
             SettingMultipleChoice(
@@ -68,6 +70,12 @@ class SaavnExtension : ExtensionClient,
                 entryTitles = LANGUAGES,
                 entryValues = LANGUAGES.map { it.lowercase() },
                 defaultEntryIndices = setOf(0)
+            ),
+            SettingSwitch(
+                title = "Auto-Radio",
+                key = "auto_radio_enabled",
+                summary = "Automatically play similar tracks when the queue ends",
+                defaultValue = true
             )
         )
     }

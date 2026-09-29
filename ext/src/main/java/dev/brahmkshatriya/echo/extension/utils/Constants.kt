@@ -33,3 +33,8 @@ object Prefixes {
     
     fun isLocal(id: String): Boolean = id.startsWith(LOCAL)
 }
+
+object SettingsKeys {
+    const val DEFAULT_HOME_LANGUAGES = "default_home_languages"
+    const val AUTO_RADIO_ENABLED = "auto_radio_enabled"
+}
