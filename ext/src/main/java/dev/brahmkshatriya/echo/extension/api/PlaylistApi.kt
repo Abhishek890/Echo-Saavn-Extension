@@ -17,13 +17,17 @@ class PlaylistApi : BaseApi() {
         )
     )
 
-    suspend fun getDetails(playlistId: String): JsonObject = executeRequest(
+    suspend fun getDetails(
+        token: String,
+        page: Int = 1,
+        count: Int = 100
+    ): JsonObject = executeRequest(
         call = "webapi.get",
         params = mapOf(
             "type" to "playlist",
-            "token" to playlistId,
-            "p" to "1",
-            "n" to "100"
+            "token" to token,
+            "p" to page.toString(),
+            "n" to count.toString()
         )
     )
 
