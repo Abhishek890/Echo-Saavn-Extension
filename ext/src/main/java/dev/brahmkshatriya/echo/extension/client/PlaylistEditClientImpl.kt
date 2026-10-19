@@ -3,6 +3,11 @@ package dev.brahmkshatriya.echo.extension.client
 import dev.brahmkshatriya.echo.common.clients.PlaylistEditClient
 import dev.brahmkshatriya.echo.common.models.*
 import dev.brahmkshatriya.echo.common.models.Feed.Companion.toFeed
+import dev.brahmkshatriya.echo.common.helpers.Page
+import dev.brahmkshatriya.echo.common.helpers.PagedData
+
+import kotlinx.serialization.json.*
+
 import dev.brahmkshatriya.echo.extension.JioSaavnApi
 import dev.brahmkshatriya.echo.extension.JioSaavnParser
 import dev.brahmkshatriya.echo.extension.SaavnDependencies
@@ -11,7 +16,6 @@ import dev.brahmkshatriya.echo.extension.storage.LocalPlaylistTracksStore
 import dev.brahmkshatriya.echo.extension.utils.Logger
 import dev.brahmkshatriya.echo.extension.utils.getToken
 import dev.brahmkshatriya.echo.extension.utils.Prefixes
-import kotlinx.serialization.json.*
 
 class PlaylistEditClientImpl(
     private val api: JioSaavnApi,
@@ -63,10 +67,36 @@ class PlaylistEditClientImpl(
             return tracks.toFeed() as Feed<Track>
         }
 
-        if (cachedPlaylistId == playlist.id && cachedTracks != null) {
-            return cachedTracks!!.toFeed() as Feed<Track>
+        // Cache check
+        val cached = cachedTracks.takeIf { cachedPlaylistId == playlist.id }
+        val totalCount = cachedPlaylist?.trackCount?.toInt()
+
+        // All tracks cached — return static feed
+        if (cached != null && totalCount != null && cached.size >= totalCount) {
+            Logger.d("PlaylistClient", "All $totalCount tracks cached — static feed")
+            return cached.toFeed() as Feed<Track>
         }
-        return emptyList<Track>().toFeed() as Feed<Track>
+
+        // Need pagination
+        val token = playlist.getToken()
+        if (token.isBlank()) return emptyList<Track>().toFeed() as Feed<Track>
+
+        val pagedData = PagedData.Concat(
+            PagedData.Single { cached ?: emptyList() },
+            PagedData.Continuous { continuation ->
+                val page = continuation?.toIntOrNull() ?: 2
+                try {
+                    val response = api.playlist.getDetails(token, page = page, count = 100)
+                    val tracks = parser.playlist.parsePlaylistTracks(response)
+                    val next = if (tracks.size >= 100) (page + 1).toString() else null
+                    Page(tracks, next)
+                } catch (e: Exception) {
+                    Logger.e("PlaylistClient", "Failed to load tracks page $page", e)
+                    Page(emptyList(), null)
+                }
+            }
+        )
+        return pagedData.toFeed()
     }
 
     // ===== LOAD FEED =====
