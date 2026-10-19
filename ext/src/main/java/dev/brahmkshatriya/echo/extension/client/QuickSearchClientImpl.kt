@@ -6,6 +6,7 @@ import dev.brahmkshatriya.echo.common.helpers.PagedData
 import dev.brahmkshatriya.echo.common.models.Track
 import dev.brahmkshatriya.echo.common.models.Feed
 import dev.brahmkshatriya.echo.common.models.Shelf
+import dev.brahmkshatriya.echo.common.models.EchoMediaItem
 import dev.brahmkshatriya.echo.common.models.Artist
 import dev.brahmkshatriya.echo.common.models.Tab
 import dev.brahmkshatriya.echo.common.models.QuickSearchItem
@@ -71,9 +72,20 @@ class QuickSearchClientImpl(
         )
     }
 
+
+    // ===== QUICK SEARCH =====
+
     override suspend fun quickSearch(query: String): List<QuickSearchItem> {
         if (query.isBlank()) return emptyList()
-        
+
+        // 1. Try URL detection first
+        val urlItem = parseJioSaavnUrl(query)
+        if (urlItem != null) {
+            Logger.d("QuickSearch", "URL detected: ${urlItem::class.simpleName}")
+            return listOf(QuickSearchItem.Media(urlItem, false))
+        }
+
+        // 2. Normal search
         return try {
             val response = api.search.all(query)
             val result = parser.search.parseSearchAll(response)
@@ -84,13 +96,87 @@ class QuickSearchClientImpl(
             result.albums.take(2).forEach { items.add(QuickSearchItem.Media(it, false)) }
             result.artists.take(2).forEach { items.add(QuickSearchItem.Media(it, false)) }
             result.playlists.take(2).forEach { items.add(QuickSearchItem.Media(it, false)) }
-            
+
             items
         } catch (e: Exception) {
-            Logger.e("QuickSearch", "Failed", e)
+            Logger.e("QuickSearch", "Search failed: $query", e)
             emptyList()
         }
     }
+
+    // ===== URL DETECTION =====
+
+    private suspend fun parseJioSaavnUrl(query: String): EchoMediaItem? {
+        return try {
+            if (!query.contains("jiosaavn.com", ignoreCase = true)) return null
+
+            val token = query
+                .substringBefore("?")
+                .substringBefore("#")
+                .trimEnd('/')
+                .substringAfterLast("/")
+            if (token.isBlank()) return null
+
+            when {
+                query.contains("/song/") -> fetchTrack(token)
+                query.contains("/album/") -> fetchAlbum(token)
+                query.contains("/artist/") -> fetchArtist(token)
+                query.contains("/featured/") -> fetchPlaylist(token)
+                query.contains("/s/playlist/") -> fetchPlaylist(token)
+                else -> null
+            }
+        } catch (e: Exception) {
+            Logger.e("QuickSearch", "URL detection failed: $query", e)
+            null
+        }
+    }
+
+    // ===== FETCH HELPERS =====
+
+    private suspend fun fetchTrack(token: String): Track? {
+        return try {
+            val response = api.track.getDetails(token)
+            parser.track.parseSongDetails(response).firstOrNull()
+        } catch (e: Exception) {
+            Logger.e("QuickSearch", "Failed to fetch track: $token", e)
+            null
+        }
+    }
+
+    private suspend fun fetchAlbum(token: String): Album? {
+        return try {
+            val response = api.album.getDetails(token)
+            parser.album.parseAlbumToAlbum(response)
+        } catch (e: Exception) {
+            Logger.e("QuickSearch", "Failed to fetch album: $token", e)
+            null
+        }
+    }
+
+    private suspend fun fetchArtist(token: String): Artist? {
+        return try {
+            val response = api.artist.getDetails(
+                token = token,
+                songCount = 0,
+                albumCount = 0
+            )
+            parser.artist.parseArtistToArtist(response)
+        } catch (e: Exception) {
+            Logger.e("QuickSearch", "Failed to fetch artist: $token", e)
+            null
+        }
+    }
+
+    private suspend fun fetchPlaylist(token: String): Playlist? {
+        return try {
+            val response = api.playlist.getDetails(token)
+            parser.playlist.parsePlaylistToPlaylist(response)
+        } catch (e: Exception) {
+            Logger.e("QuickSearch", "Failed to fetch playlist: $token", e)
+            null
+        }
+    }
+
 
     override suspend fun deleteQuickSearch(item: QuickSearchItem) {
         // Not implemented
