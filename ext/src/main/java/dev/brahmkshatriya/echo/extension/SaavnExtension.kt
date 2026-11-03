@@ -11,6 +11,8 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import java.util.concurrent.ConcurrentHashMap
+import kotlinx.coroutines.async
+import kotlinx.serialization.json.JsonObject
 
 import dev.brahmkshatriya.echo.extension.client.*
 import dev.brahmkshatriya.echo.extension.utils.LANGUAGES
@@ -42,6 +44,45 @@ object SaavnDependencies {
         settings?.getBoolean(SettingsKeys.RICH_SHARE_ENABLED) ?: false
 
     val inflightTrackLoads = ConcurrentHashMap<String, Deferred<Track>>()
+
+    val inflightLibraryLoads = ConcurrentHashMap<String, Deferred<JsonObject>>()
+
+    // Short-lived cache for library.getAll. Multiple Echo screens call isItemLiked
+    // in quick succession (each on its own thread, ~150ms apart), so in-flight dedup
+    // alone can't merge them. A short TTL absorbs the sequential calls without
+    // making stale state visible for long.
+    private var cachedLibrary: JsonObject? = null
+    private var cachedLibraryTime: Long = 0
+    private const val LIBRARY_TTL_MS = 2_000L
+
+    fun invalidateLibraryCache() {
+        cachedLibrary = null
+        cachedLibraryTime = 0
+    }
+
+    suspend fun getLibraryShared(): JsonObject {
+        val now = System.currentTimeMillis()
+        cachedLibrary?.let {
+            if (now - cachedLibraryTime < LIBRARY_TTL_MS) {
+                Logger.d("LibraryApi", "getLibraryShared: cache hit (age=${now - cachedLibraryTime}ms)")
+                return it
+            }
+        }
+
+        val deferred = inflightLibraryLoads.computeIfAbsent("library") {
+            appScope.async { api.library.getAll() }
+        }
+        val library = try {
+            deferred.await()
+        } finally {
+            inflightLibraryLoads.remove("library")
+        }
+
+        cachedLibrary = library
+        cachedLibraryTime = System.currentTimeMillis()
+        Logger.d("LibraryApi", "getLibraryShared: fetched (next TTL ${LIBRARY_TTL_MS}ms)")
+        return library
+    }
 
     // Track cache
     var cachedTrackId: String? = null

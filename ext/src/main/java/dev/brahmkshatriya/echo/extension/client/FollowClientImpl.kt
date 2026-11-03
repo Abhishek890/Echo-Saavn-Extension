@@ -18,6 +18,8 @@ class FollowClientImpl(
 
     override suspend fun isFollowing(item: EchoMediaItem): Boolean {
         return try {
+            Logger.d("FollowClient", "isFollowing: ${item::class.simpleName} id=${item.id}")
+
             val library = api.library.getAll()
             val followedIds = when (item) {
                 is Artist -> parser.library.parseArtistIds(library)

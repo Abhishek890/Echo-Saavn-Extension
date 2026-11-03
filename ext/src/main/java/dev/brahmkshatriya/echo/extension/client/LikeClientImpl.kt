@@ -8,6 +8,7 @@ import dev.brahmkshatriya.echo.common.helpers.ClientException
 
 import dev.brahmkshatriya.echo.extension.JioSaavnApi
 import dev.brahmkshatriya.echo.extension.JioSaavnParser
+import dev.brahmkshatriya.echo.extension.SaavnDependencies
 import dev.brahmkshatriya.echo.extension.utils.Logger
 import dev.brahmkshatriya.echo.extension.utils.requireSuccess
 
@@ -18,7 +19,9 @@ class LikeClientImpl(
 
     override suspend fun isItemLiked(item: EchoMediaItem): Boolean {
         return try {
-            val library = api.library.getAll()
+            Logger.d("LikeClient", "isItemLiked: ${item::class.simpleName} id=${item.id}")
+
+            val library = SaavnDependencies.getLibraryShared()
             val likedIds = when (item) {
                 is Track -> parser.library.parseSongIds(library)
                 is Album -> parser.library.parseAlbumIds(library)
@@ -43,6 +46,7 @@ class LikeClientImpl(
             val response = if (shouldLike) api.library.add(id, type)
                            else api.library.delete(id, type)
             response.requireSuccess("library.${if (shouldLike) "add" else "delete"}")
+            SaavnDependencies.invalidateLibraryCache()
         } catch (e: ClientException) {
             throw e
         } catch (e: kotlinx.coroutines.CancellationException) {
