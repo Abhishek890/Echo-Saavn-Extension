@@ -12,7 +12,7 @@ import kotlinx.serialization.json.JsonObject
  *
  * ### Why `BaseApi`, not `AuthenticatedBaseApi`
  *
- * [AuthenticatedBaseApi] reads the cookie from [dev.brahmkshatriya.echo.extension.Saavn.sessionCookie]
+ * [AuthenticatedBaseApi] reads the cookie from [dev.brahmkshatriya.echo.extension.SaavnSession.cookie]
  * — but here, the cookie is a *parameter*, not the active session. During login,
  * the candidate cookie exists only in the WebView; during `getCurrentUser` refresh,
  * the caller already has the cookie and wants to confirm it's still valid. Both cases

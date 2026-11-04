@@ -1,14 +1,14 @@
 package dev.brahmkshatriya.echo.extension.api
 
 import dev.brahmkshatriya.echo.common.helpers.ClientException
-import dev.brahmkshatriya.echo.extension.Saavn
+import dev.brahmkshatriya.echo.extension.SaavnSession
 import kotlinx.serialization.json.JsonObject
 
 /**
  * Base class for JioSaavn APIs that require a logged-in session.
  *
  * Extends [BaseApi] and adds automatic cookie injection: any call made via
- * [executeAuthed] sends the session cookie from [Saavn.sessionCookie].
+ * [executeAuthed] sends the session cookie from [SaavnSession.cookie].
  * If no cookie is present, throws [ClientException.LoginRequired] — which Echo
  * catches and turns into a login prompt.
  *
@@ -44,7 +44,7 @@ open class AuthenticatedBaseApi : BaseApi() {
      * alongside the session — uncommon, but possible).
      */
     protected fun requireCookie(): String =
-        Saavn.sessionCookie ?: throw ClientException.LoginRequired()
+        SaavnSession.cookie ?: throw ClientException.LoginRequired()
 
     /**
      * Executes an authenticated `__call=...` request with the session cookie attached.

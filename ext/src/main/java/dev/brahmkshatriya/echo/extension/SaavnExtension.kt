@@ -2,9 +2,7 @@ package dev.brahmkshatriya.echo.extension
 
 import dev.brahmkshatriya.echo.common.clients.*
 import dev.brahmkshatriya.echo.common.settings.*
-import dev.brahmkshatriya.echo.common.models.Track
 import dev.brahmkshatriya.echo.common.models.TrackDetails
-import dev.brahmkshatriya.echo.common.models.Album
 
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -16,7 +14,26 @@ import dev.brahmkshatriya.echo.extension.storage.LocalRecentStore
 import dev.brahmkshatriya.echo.extension.service.RadioService
 import dev.brahmkshatriya.echo.extension.service.AlbumService
 import dev.brahmkshatriya.echo.extension.utils.Logger
-import dev.brahmkshatriya.echo.extension.utils.SettingsKeys
+
+
+/**
+ * Session state for the current JioSaavn login.
+ *
+ * Holds the auth cookie and the numeric user id. Written by `LoginClientImpl`
+ * on login/logout restore, read by `AuthenticatedBaseApi` and client code that
+ * needs to know who's logged in (e.g. playlist ownership checks).
+ *
+ * Both fields are cleared together on logout — they're never independent.
+ */
+object SaavnSession {
+    var cookie: String? = null
+    var userId: String? = null
+
+    fun clear() {
+        cookie = null
+        userId = null
+    }
+}
 
 object Saavn {
     val api by lazy { JioSaavnApi() }
@@ -26,10 +43,6 @@ object Saavn {
 
     val radioService by lazy { RadioService(api, parser, appScope) }
     val albumService by lazy { AlbumService(api, parser, appScope) }
-
-    var sessionCookie: String? = null
-    var currentUserId: String? = null
-
 }
 
 class SaavnExtension : ExtensionClient,
@@ -44,7 +57,7 @@ class SaavnExtension : ExtensionClient,
     TrackerClient,
     SaveClient by SaveClientImpl(),
     ShareClient by ShareClientImpl(Saavn.api, Saavn.parser),
-    LoginClient.WebView by LoginClientImpl(),
+    LoginClient.WebView by LoginClientImpl(Saavn.api),
     FollowClient by FollowClientImpl(Saavn.api, Saavn.parser),
     LikeClient by LikeClientImpl(Saavn.api, Saavn.parser, Saavn.appScope) {
 

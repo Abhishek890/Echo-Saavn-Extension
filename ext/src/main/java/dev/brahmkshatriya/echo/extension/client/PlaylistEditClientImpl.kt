@@ -1,18 +1,22 @@
 package dev.brahmkshatriya.echo.extension.client
 
 import dev.brahmkshatriya.echo.common.clients.PlaylistEditClient
-import dev.brahmkshatriya.echo.common.models.*
+import dev.brahmkshatriya.echo.common.models.Track
+import dev.brahmkshatriya.echo.common.models.Playlist
+import dev.brahmkshatriya.echo.common.models.Shelf
+import dev.brahmkshatriya.echo.common.models.Feed
+import dev.brahmkshatriya.echo.common.models.Date
 import dev.brahmkshatriya.echo.common.models.Feed.Companion.toFeed
 import dev.brahmkshatriya.echo.common.helpers.Page
 import dev.brahmkshatriya.echo.common.helpers.PagedData
 import dev.brahmkshatriya.echo.common.helpers.ClientException
 import dev.brahmkshatriya.echo.common.settings.Settings
 
-import kotlinx.serialization.json.*
+import kotlinx.serialization.json.JsonObject
 
 import dev.brahmkshatriya.echo.extension.JioSaavnApi
 import dev.brahmkshatriya.echo.extension.JioSaavnParser
-import dev.brahmkshatriya.echo.extension.Saavn
+import dev.brahmkshatriya.echo.extension.SaavnSession
 import dev.brahmkshatriya.echo.extension.SaavnSettings
 import dev.brahmkshatriya.echo.extension.storage.LocalPlaylistStore
 import dev.brahmkshatriya.echo.extension.storage.LocalPlaylistTracksStore
@@ -74,7 +78,7 @@ class PlaylistEditClientImpl(
     }
 
     private fun isOwnedByCurrentUser(playlist: Playlist): Boolean {
-        val currentUser = Saavn.currentUserId ?: return false
+        val currentUser = SaavnSession.userId ?: return false
         val uid = playlist.extras["uid"].orEmpty()
         return uid.isNotBlank() && uid == currentUser
     }
@@ -235,7 +239,7 @@ class PlaylistEditClientImpl(
     private suspend fun loadSaavnEditablePlaylists(
         track: Track?,
     ): List<Pair<Playlist, Boolean>> {
-        val currentUser = Saavn.currentUserId ?: return emptyList()
+        val currentUser = SaavnSession.userId ?: return emptyList()
 
         return try {
             val response = api.playlistEdit.listMyPlaylists()

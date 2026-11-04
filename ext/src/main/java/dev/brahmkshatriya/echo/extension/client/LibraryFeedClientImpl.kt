@@ -17,7 +17,7 @@ import dev.brahmkshatriya.echo.common.helpers.ClientException
 
 import dev.brahmkshatriya.echo.extension.JioSaavnApi
 import dev.brahmkshatriya.echo.extension.JioSaavnParser
-import dev.brahmkshatriya.echo.extension.Saavn
+import dev.brahmkshatriya.echo.extension.SaavnSession
 import dev.brahmkshatriya.echo.extension.SaavnSettings
 import dev.brahmkshatriya.echo.extension.storage.*
 import dev.brahmkshatriya.echo.extension.utils.Logger
@@ -30,7 +30,7 @@ class LibraryFeedClientImpl(
     override suspend fun loadLibraryFeed(): Feed<Shelf> {
         val tabs = buildList {
             add(Tab(id = "local", title = "Local"))
-            if (Saavn.sessionCookie != null) {
+            if (SaavnSession.cookie != null) {
                 add(Tab(id = "saavn", title = "JioSaavn"))
             }
         }
