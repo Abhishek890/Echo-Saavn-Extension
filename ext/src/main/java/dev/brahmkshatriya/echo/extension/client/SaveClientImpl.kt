@@ -3,13 +3,13 @@ package dev.brahmkshatriya.echo.extension.client
 import dev.brahmkshatriya.echo.common.clients.SaveClient
 import dev.brahmkshatriya.echo.common.models.*
 
-import dev.brahmkshatriya.echo.extension.SaavnDependencies
+import dev.brahmkshatriya.echo.extension.SaavnSettings
 import dev.brahmkshatriya.echo.extension.storage.*
 
 class SaveClientImpl : SaveClient {
 
     override suspend fun saveToLibrary(item: EchoMediaItem, shouldSave: Boolean) {
-        val settings = SaavnDependencies.settings ?: return
+        val settings = SaavnSettings.settings ?: return
         when (item) {
             is Track -> if (shouldSave) LocalSavedTracksStore.add(settings, item)
                         else LocalSavedTracksStore.remove(settings, item.id)
@@ -24,7 +24,7 @@ class SaveClientImpl : SaveClient {
     }
 
     override suspend fun isItemSaved(item: EchoMediaItem): Boolean {
-        val settings = SaavnDependencies.settings ?: return false
+        val settings = SaavnSettings.settings ?: return false
         return when (item) {
             is Track -> LocalSavedTracksStore.contains(settings, item.id)
             is Album -> LocalSavedAlbumsStore.contains(settings, item.id)

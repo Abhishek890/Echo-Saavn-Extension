@@ -10,11 +10,12 @@ import dev.brahmkshatriya.echo.common.models.Feed.Companion.toFeed
 import dev.brahmkshatriya.echo.common.models.NetworkRequest.Companion.toGetRequest
 
 import kotlinx.coroutines.async
-import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Deferred
+import java.util.concurrent.ConcurrentHashMap
 
 import dev.brahmkshatriya.echo.extension.JioSaavnApi
 import dev.brahmkshatriya.echo.extension.JioSaavnParser
-import dev.brahmkshatriya.echo.extension.SaavnDependencies
 import dev.brahmkshatriya.echo.extension.service.RadioService
 import dev.brahmkshatriya.echo.extension.service.AlbumService
 import dev.brahmkshatriya.echo.extension.utils.decryptUrl
@@ -25,25 +26,31 @@ class TrackClientImpl(
     private val api: JioSaavnApi,
     private val parser: JioSaavnParser,
     private val radioService: RadioService,
-    private val albumService: AlbumService
+    private val albumService: AlbumService,
+    private val scope: CoroutineScope
 ) : TrackClient {
 
+    // Single-entry cache for the last loaded track, plus in-flight dedup so that
+    // concurrent loadTrack calls for the same track share one network fetch.
+    private var cachedTrackId: String? = null
+    private var cachedTrack: Track? = null
+    private val inflightTrackLoads = ConcurrentHashMap<String, Deferred<Track>>()
 
     override suspend fun loadTrack(track: Track, isDownload: Boolean): Track {
         // Cache hit
-        if (SaavnDependencies.cachedTrackId == track.id && SaavnDependencies.cachedTrack != null) {
-            return SaavnDependencies.cachedTrack!!
+        if (cachedTrackId == track.id && cachedTrack != null) {
+            return cachedTrack!!
         }
 
         // In-flight check + start
-        val deferred = SaavnDependencies.inflightTrackLoads.computeIfAbsent(track.id) {
-            SaavnDependencies.appScope.async {
+        val deferred = inflightTrackLoads.computeIfAbsent(track.id) {
+            scope.async {
                 val token = track.getToken()
                 val response = api.track.getDetails(token)
                 val parsed = parser.track.parseSongDetails(response).firstOrNull() ?: track
 
-                SaavnDependencies.cachedTrackId = track.id
-                SaavnDependencies.cachedTrack = parsed
+                cachedTrackId = track.id
+                cachedTrack = parsed
 
                 parsed
             }
@@ -52,7 +59,7 @@ class TrackClientImpl(
         return try {
             deferred.await()
         } finally {
-            SaavnDependencies.inflightTrackLoads.remove(track.id)
+            inflightTrackLoads.remove(track.id)
         }
     }
 

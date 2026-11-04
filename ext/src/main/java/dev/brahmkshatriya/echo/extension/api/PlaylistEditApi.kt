@@ -14,7 +14,7 @@ import kotlinx.serialization.json.JsonObject
  * Every mutation here requires the playlist to be **owned by the current user**.
  * The server enforces this — non-owned playlists return an error status. Ownership
  * is determined by comparing `Playlist.extras["uid"]` to
- * [dev.brahmkshatriya.echo.extension.SaavnDependencies.currentUserId] in
+ * [dev.brahmkshatriya.echo.extension.Saavn.currentUserId] in
  * `PlaylistEditClientImpl` before calling these endpoints.
  *
  * ### The `contents` encoding

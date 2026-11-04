@@ -11,7 +11,7 @@ import dev.brahmkshatriya.echo.common.models.Feed.Companion.toFeedData
 
 import dev.brahmkshatriya.echo.extension.JioSaavnApi
 import dev.brahmkshatriya.echo.extension.JioSaavnParser
-import dev.brahmkshatriya.echo.extension.SaavnDependencies
+import dev.brahmkshatriya.echo.extension.SaavnSettings
 import dev.brahmkshatriya.echo.extension.parser.HomeSection
 import dev.brahmkshatriya.echo.extension.parser.MoreInfo
 import dev.brahmkshatriya.echo.extension.utils.LANGUAGES
@@ -24,7 +24,7 @@ class HomeFeedClientImpl(
 ) : HomeFeedClient {
 
     override suspend fun loadHomeFeed(): Feed<Shelf> {
-        val defaultLanguages = SaavnDependencies.getDefaultLanguages()
+        val defaultLanguages = SaavnSettings.defaultLanguages()
         
         val tabs = listOf(Tab(id = "default", title = "Default")) +
                 LANGUAGES.map { Tab(id = it.lowercase(), title = it) }

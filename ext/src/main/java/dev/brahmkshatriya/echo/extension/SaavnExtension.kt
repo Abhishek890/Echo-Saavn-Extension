@@ -6,13 +6,9 @@ import dev.brahmkshatriya.echo.common.models.Track
 import dev.brahmkshatriya.echo.common.models.TrackDetails
 import dev.brahmkshatriya.echo.common.models.Album
 
-import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
-import java.util.concurrent.ConcurrentHashMap
-import kotlinx.coroutines.async
-import kotlinx.serialization.json.JsonObject
 
 import dev.brahmkshatriya.echo.extension.client.*
 import dev.brahmkshatriya.echo.extension.utils.LANGUAGES
@@ -22,7 +18,7 @@ import dev.brahmkshatriya.echo.extension.service.AlbumService
 import dev.brahmkshatriya.echo.extension.utils.Logger
 import dev.brahmkshatriya.echo.extension.utils.SettingsKeys
 
-object SaavnDependencies {
+object Saavn {
     val api by lazy { JioSaavnApi() }
     val parser by lazy { JioSaavnParser() }
 
@@ -31,84 +27,26 @@ object SaavnDependencies {
     val radioService by lazy { RadioService(api, parser, appScope) }
     val albumService by lazy { AlbumService(api, parser, appScope) }
 
-    var settings: Settings? = null
-
-    fun getDefaultLanguages(): List<String> {
-        val value = settings?.getStringSet(SettingsKeys.DEFAULT_HOME_LANGUAGES)
-        return value?.toList() ?: listOf("hindi")
-    }
-
-    fun isAutoRadioEnabled(): Boolean =
-        settings?.getBoolean(SettingsKeys.AUTO_RADIO_ENABLED) ?: true
-    fun isRichShareEnabled(): Boolean =
-        settings?.getBoolean(SettingsKeys.RICH_SHARE_ENABLED) ?: false
-
-    val inflightTrackLoads = ConcurrentHashMap<String, Deferred<Track>>()
-
-    val inflightLibraryLoads = ConcurrentHashMap<String, Deferred<JsonObject>>()
-
-    // Short-lived cache for library.getAll. Multiple Echo screens call isItemLiked
-    // in quick succession (each on its own thread, ~150ms apart), so in-flight dedup
-    // alone can't merge them. A short TTL absorbs the sequential calls without
-    // making stale state visible for long.
-    private var cachedLibrary: JsonObject? = null
-    private var cachedLibraryTime: Long = 0
-    private const val LIBRARY_TTL_MS = 2_000L
-
-    fun invalidateLibraryCache() {
-        cachedLibrary = null
-        cachedLibraryTime = 0
-    }
-
-    suspend fun getLibraryShared(): JsonObject {
-        val now = System.currentTimeMillis()
-        cachedLibrary?.let {
-            if (now - cachedLibraryTime < LIBRARY_TTL_MS) {
-                Logger.d("LibraryApi", "getLibraryShared: cache hit (age=${now - cachedLibraryTime}ms)")
-                return it
-            }
-        }
-
-        val deferred = inflightLibraryLoads.computeIfAbsent("library") {
-            appScope.async { api.library.getAll() }
-        }
-        val library = try {
-            deferred.await()
-        } finally {
-            inflightLibraryLoads.remove("library")
-        }
-
-        cachedLibrary = library
-        cachedLibraryTime = System.currentTimeMillis()
-        Logger.d("LibraryApi", "getLibraryShared: fetched (next TTL ${LIBRARY_TTL_MS}ms)")
-        return library
-    }
-
-    // Track cache
-    var cachedTrackId: String? = null
-    var cachedTrack: Track? = null
-
-
     var sessionCookie: String? = null
     var currentUserId: String? = null
 
 }
 
 class SaavnExtension : ExtensionClient,
-    QuickSearchClient by QuickSearchClientImpl(SaavnDependencies.api, SaavnDependencies.parser),
-    HomeFeedClient by HomeFeedClientImpl(SaavnDependencies.api, SaavnDependencies.parser),
-    TrackClient by TrackClientImpl(SaavnDependencies.api, SaavnDependencies.parser, SaavnDependencies.radioService, SaavnDependencies.albumService),
-    AlbumClient by AlbumClientImpl(SaavnDependencies.api, SaavnDependencies.parser, SaavnDependencies.albumService),
-    ArtistClient by ArtistClientImpl(SaavnDependencies.api, SaavnDependencies.parser),
-    LibraryFeedClient by LibraryFeedClientImpl(SaavnDependencies.api, SaavnDependencies.parser),
-    PlaylistEditClient by PlaylistEditClientImpl(SaavnDependencies.api, SaavnDependencies.parser),
-    RadioClient by RadioClientImpl(SaavnDependencies.radioService),
+    QuickSearchClient by QuickSearchClientImpl(Saavn.api, Saavn.parser),
+    HomeFeedClient by HomeFeedClientImpl(Saavn.api, Saavn.parser),
+    TrackClient by TrackClientImpl(Saavn.api, Saavn.parser, Saavn.radioService, Saavn.albumService, Saavn.appScope),
+    AlbumClient by AlbumClientImpl(Saavn.api, Saavn.parser, Saavn.albumService),
+    ArtistClient by ArtistClientImpl(Saavn.api, Saavn.parser),
+    LibraryFeedClient by LibraryFeedClientImpl(Saavn.api, Saavn.parser),
+    PlaylistEditClient by PlaylistEditClientImpl(Saavn.api, Saavn.parser),
+    RadioClient by RadioClientImpl(Saavn.radioService),
     TrackerClient,
     SaveClient by SaveClientImpl(),
-    ShareClient by ShareClientImpl(SaavnDependencies.api, SaavnDependencies.parser),
+    ShareClient by ShareClientImpl(Saavn.api, Saavn.parser),
     LoginClient.WebView by LoginClientImpl(),
-    FollowClient by FollowClientImpl(SaavnDependencies.api, SaavnDependencies.parser),
-    LikeClient by LikeClientImpl(SaavnDependencies.api, SaavnDependencies.parser) {
+    FollowClient by FollowClientImpl(Saavn.api, Saavn.parser),
+    LikeClient by LikeClientImpl(Saavn.api, Saavn.parser, Saavn.appScope) {
 
     private lateinit var settings: Settings
 
@@ -138,11 +76,11 @@ class SaavnExtension : ExtensionClient,
     }
 
     override fun setSettings(settings: Settings) {
-        SaavnDependencies.settings = settings
+        SaavnSettings.init(settings)
     }
 
     override suspend fun onTrackChanged(details: TrackDetails?) {
-        val settings = SaavnDependencies.settings ?: return
+        val settings = SaavnSettings.settings ?: return
         val track = details?.track ?: return
         LocalRecentStore.add(settings, track)
     }

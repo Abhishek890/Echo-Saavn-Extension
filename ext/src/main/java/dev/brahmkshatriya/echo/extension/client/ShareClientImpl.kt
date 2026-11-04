@@ -7,7 +7,7 @@ import dev.brahmkshatriya.echo.common.models.Track
 
 import dev.brahmkshatriya.echo.extension.JioSaavnApi
 import dev.brahmkshatriya.echo.extension.JioSaavnParser
-import dev.brahmkshatriya.echo.extension.SaavnDependencies
+import dev.brahmkshatriya.echo.extension.SaavnSettings
 import dev.brahmkshatriya.echo.extension.storage.LocalPlaylistTracksStore
 import dev.brahmkshatriya.echo.extension.storage.LocalSavedTracksStore
 import dev.brahmkshatriya.echo.extension.storage.Prefixes
@@ -23,7 +23,7 @@ class ShareClientImpl(
     override suspend fun onShare(item: EchoMediaItem): String {
         val url = item.extras[Extras.PERMA_URL].orEmpty()
 
-        if (!SaavnDependencies.isRichShareEnabled()) {
+        if (!SaavnSettings.isRichShareEnabled()) {
             return url.ifBlank { "JioSaavn" }
         }
 
@@ -41,12 +41,12 @@ class ShareClientImpl(
     private suspend fun fetchPlaylistTracks(playlist: Playlist): List<Track> {
 
         if (Prefixes.isSavedTracksPlaylist(playlist.id)) {
-            val settings = SaavnDependencies.settings ?: return emptyList()
+            val settings = SaavnSettings.settings ?: return emptyList()
             return LocalSavedTracksStore.getAll(settings)
         }
 
         if (Prefixes.isLocal(playlist.id)) {
-            val settings = SaavnDependencies.settings ?: return emptyList()
+            val settings = SaavnSettings.settings ?: return emptyList()
             return LocalPlaylistTracksStore.getTracks(settings, playlist.id)
         }
 

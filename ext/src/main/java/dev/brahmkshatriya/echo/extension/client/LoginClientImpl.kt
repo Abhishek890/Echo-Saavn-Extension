@@ -8,7 +8,7 @@ import dev.brahmkshatriya.echo.common.models.User
 
 import kotlinx.serialization.json.*
 
-import dev.brahmkshatriya.echo.extension.SaavnDependencies
+import dev.brahmkshatriya.echo.extension.Saavn
 import dev.brahmkshatriya.echo.extension.utils.Logger
 
 class LoginClientImpl : LoginClient.WebView {
@@ -35,8 +35,8 @@ class LoginClientImpl : LoginClient.WebView {
                 }
 
                 // Store cookie
-                SaavnDependencies.sessionCookie = cookie
-                SaavnDependencies.currentUserId = user.id
+                Saavn.sessionCookie = cookie
+                Saavn.currentUserId = user.id
                 Logger.d("LoginClient", "Login successful for user: ${user.name}")
 
                 return listOf(user)
@@ -47,7 +47,7 @@ class LoginClientImpl : LoginClient.WebView {
 
     private suspend fun verifyLogin(cookie: String): User? {
         return try {
-            val response = SaavnDependencies.api.auth.getConfigDetailsCSR(cookie)
+            val response = Saavn.api.auth.getConfigDetailsCSR(cookie)
             val userState = response["user_state"]?.jsonObject
             if (userState == null) {
                 Logger.d("LoginClient", "verifyLogin: no user_state")
@@ -92,19 +92,19 @@ class LoginClientImpl : LoginClient.WebView {
         if (user == null) {
             // Logout
             Logger.d("LoginClient", "setLoginUser(null) — logging out")
-            SaavnDependencies.sessionCookie = null
-            SaavnDependencies.currentUserId = null
+            Saavn.sessionCookie = null
+            Saavn.currentUserId = null
         } else {
             // Restore session from user extras (e.g., on app restart)
             val cookie = user.extras["cookie"]
             Logger.d("LoginClient", "setLoginUser: ${user.name}, cookie=${cookie != null}")
-            SaavnDependencies.sessionCookie = cookie
-            SaavnDependencies.currentUserId = user.id
+            Saavn.sessionCookie = cookie
+            Saavn.currentUserId = user.id
         }
     }
 
     override suspend fun getCurrentUser(): User? {
-        val cookie = SaavnDependencies.sessionCookie ?: return null
+        val cookie = Saavn.sessionCookie ?: return null
         return verifyLogin(cookie)?.copy(extras = emptyMap())
     }
 }

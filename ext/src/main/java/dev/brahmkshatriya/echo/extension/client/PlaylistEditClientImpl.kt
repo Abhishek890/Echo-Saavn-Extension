@@ -12,7 +12,8 @@ import kotlinx.serialization.json.*
 
 import dev.brahmkshatriya.echo.extension.JioSaavnApi
 import dev.brahmkshatriya.echo.extension.JioSaavnParser
-import dev.brahmkshatriya.echo.extension.SaavnDependencies
+import dev.brahmkshatriya.echo.extension.Saavn
+import dev.brahmkshatriya.echo.extension.SaavnSettings
 import dev.brahmkshatriya.echo.extension.storage.LocalPlaylistStore
 import dev.brahmkshatriya.echo.extension.storage.LocalPlaylistTracksStore
 import dev.brahmkshatriya.echo.extension.storage.LocalSavedTracksStore
@@ -26,7 +27,7 @@ class PlaylistEditClientImpl(
     private val parser: JioSaavnParser
 ) : PlaylistEditClient {
 
-    private val settings get() = SaavnDependencies.settings
+    private val settings get() = SaavnSettings.settings
 
     // ===== PLAYLIST CLIENT =====
 
@@ -73,7 +74,7 @@ class PlaylistEditClientImpl(
     }
 
     private fun isOwnedByCurrentUser(playlist: Playlist): Boolean {
-        val currentUser = SaavnDependencies.currentUserId ?: return false
+        val currentUser = Saavn.currentUserId ?: return false
         val uid = playlist.extras["uid"].orEmpty()
         return uid.isNotBlank() && uid == currentUser
     }
@@ -234,7 +235,7 @@ class PlaylistEditClientImpl(
     private suspend fun loadSaavnEditablePlaylists(
         track: Track?,
     ): List<Pair<Playlist, Boolean>> {
-        val currentUser = SaavnDependencies.currentUserId ?: return emptyList()
+        val currentUser = Saavn.currentUserId ?: return emptyList()
 
         return try {
             val response = api.playlistEdit.listMyPlaylists()
