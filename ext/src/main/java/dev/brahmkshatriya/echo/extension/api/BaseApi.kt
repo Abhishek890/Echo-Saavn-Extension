@@ -9,6 +9,7 @@ import java.net.URLEncoder
 import java.util.concurrent.TimeUnit
 
 import dev.brahmkshatriya.echo.extension.utils.Logger
+import dev.brahmkshatriya.echo.extension.utils.Ctx
 
 /**
  * Base class for all JioSaavn API wrappers.
@@ -42,7 +43,7 @@ import dev.brahmkshatriya.echo.extension.utils.Logger
 open class BaseApi {
 
     /** `ctx` query parameter. Some endpoints return different data per context. */
-    protected open val defaultCtx: String = "web6dot0"
+    protected open val defaultCtx: String = Ctx.WEB
 
     /**
      * `api_version` query parameter.
@@ -104,6 +105,7 @@ open class BaseApi {
         params: Map<String, String> = emptyMap(),
         headers: Map<String, String> = emptyMap(),
         apiVersion: String? = defaultApiVersion,
+        ctx: String? = defaultCtx,
     ): JsonObject {
         // Build defaults first, then let caller-provided `params` override.
         val baseParams = buildMap {
@@ -111,7 +113,7 @@ open class BaseApi {
             put("_marker", "0")
             // Some endpoints reject or behave differently when api_version is present.
             if (apiVersion != null) put("api_version", apiVersion)
-            put("ctx", defaultCtx)
+            put("ctx", ctx)
         }
         val allParams = baseParams + params
 

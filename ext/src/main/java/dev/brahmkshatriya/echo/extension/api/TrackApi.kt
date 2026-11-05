@@ -1,6 +1,7 @@
 package dev.brahmkshatriya.echo.extension.api
 
 import kotlinx.serialization.json.JsonObject
+import dev.brahmkshatriya.echo.extension.utils.Ctx
 
 /**
  * JioSaavn track endpoints.
@@ -52,4 +53,21 @@ class TrackApi : BaseApi() {
             "token" to songId
         )
     )
+
+    /**
+     * Fetches song recommendations for a given song.
+     *
+     * Used by the song detail feed's "You Might Like" shelf. Note that the input
+     * is the numeric id, not the token — see [songId] param.
+     *
+     * @param songId the saavn id (e.g. `"38682222"`), NOT the permalink token.
+     *   This endpoint accepts ids; passing a token returns an empty result.
+     * @return the response which has recommended song objects.
+     */
+    suspend fun getSongReco(songId: String): JsonObject = executeRequest(
+        call = "reco.getreco",
+        params = mapOf("pid" to songId),
+        ctx = Ctx.ANDROID
+    )
+
 }

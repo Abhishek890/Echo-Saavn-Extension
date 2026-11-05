@@ -1,6 +1,7 @@
 package dev.brahmkshatriya.echo.extension.api
 
 import kotlinx.serialization.json.JsonObject
+import dev.brahmkshatriya.echo.extension.utils.Ctx
 
 /**
  * JioSaavn radio ("stations") endpoints.
@@ -22,7 +23,7 @@ class RadioApi : BaseApi() {
      * Radio endpoints require the `android` context. Overriding here so every call
      * in this class picks it up automatically.
      */
-    override val defaultCtx: String = "android"
+    override val defaultCtx: String = Ctx.ANDROID
 
     /**
      * Creates a new radio station seeded from a single song.

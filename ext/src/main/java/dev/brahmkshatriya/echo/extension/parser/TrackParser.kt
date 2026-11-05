@@ -98,4 +98,22 @@ class TrackParser : BaseParser() {
             emptyList()
         }
     }
+
+    /**
+     * Parses a `reco.getreco` response.
+     *
+     * The response is `{ "<songId>": [ ... ] }` — a single top-level key whose
+     * array contains the recommended tracks. The id in the key isn't needed here;
+     * we just take the first array.
+     */
+    fun parseSongReco(obj: JsonObject): List<Track> {
+        return try {
+            val songsArray = obj.values.firstOrNull { it is JsonArray }?.jsonArray
+                ?: return emptyList()
+            songsArray.mapNotNull { parseSongToTrack(it.jsonObject) }
+        } catch (e: Exception) {
+            emptyList()
+        }
+    }
+
 }
