@@ -18,6 +18,7 @@ import dev.brahmkshatriya.echo.common.helpers.ClientException
 import dev.brahmkshatriya.echo.extension.JioSaavnApi
 import dev.brahmkshatriya.echo.extension.JioSaavnParser
 import dev.brahmkshatriya.echo.extension.SaavnSession
+import dev.brahmkshatriya.echo.extension.Saavn
 import dev.brahmkshatriya.echo.extension.SaavnSettings
 import dev.brahmkshatriya.echo.extension.storage.*
 import dev.brahmkshatriya.echo.extension.utils.Logger
@@ -36,6 +37,8 @@ class LibraryFeedClientImpl(
         }
 
         return Feed(tabs) { tab ->
+            // Record the active tab so createPlaylist can honour the user's context.
+            Saavn.currentLibraryTabId = tab?.id ?: "local"
             when (tab?.id) {
                 "saavn" -> loadSaavnTab()
                 else -> loadLocalTab()

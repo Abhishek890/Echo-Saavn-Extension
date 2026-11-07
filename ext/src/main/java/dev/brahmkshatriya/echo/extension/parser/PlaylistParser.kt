@@ -63,6 +63,39 @@ class PlaylistParser(
         }
     }
 
+    /**
+     * Parses a `playlist.create` response into a [Playlist].
+     *
+     * The create response has the shape:
+     *
+     *     {
+     *       "status": "ok",
+     *       "details": { ...playlist object... }
+     *     }
+     *
+     * The `details` object is a playlist in a shape similar to — but not
+     * guaranteed identical to — what `playlist.getDetails` returns. This function
+     * handles the create-specific fixups:
+     *
+     * - Extracts the playlist from `.details` (returns null if absent).
+     * - Marks the result as editable.
+     *
+     * Callers must still handle the case where `parseCreatedPlaylist` returns null
+     * (malformed response) by throwing a user-visible error.
+     *
+     * @param response the full `playlist.create` response body.
+     * @return the parsed [Playlist] marked as editable, or `null` if `.details`
+     *   is missing or unparseable.
+     */
+    fun parseCreatedPlaylist(response: JsonObject): Playlist? {
+        val details = response["details"] as? JsonObject ?: return null
+        val base = parsePlaylistToPlaylist(details) ?: return null
+
+        return base.copy(
+            isEditable = true
+        )
+    }
+
     fun parsePlaylistArtists(response: JsonObject): List<Artist> {
         val artists = response["more_info"]?.jsonObject
             ?.get("artists")?.jsonArray

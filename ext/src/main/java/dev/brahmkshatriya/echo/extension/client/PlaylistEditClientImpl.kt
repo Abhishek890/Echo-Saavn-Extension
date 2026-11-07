@@ -17,6 +17,7 @@ import kotlinx.serialization.json.JsonObject
 import dev.brahmkshatriya.echo.extension.JioSaavnApi
 import dev.brahmkshatriya.echo.extension.JioSaavnParser
 import dev.brahmkshatriya.echo.extension.SaavnSession
+import dev.brahmkshatriya.echo.extension.Saavn
 import dev.brahmkshatriya.echo.extension.SaavnSettings
 import dev.brahmkshatriya.echo.extension.storage.LocalPlaylistStore
 import dev.brahmkshatriya.echo.extension.storage.LocalPlaylistTracksStore
@@ -261,18 +262,49 @@ class PlaylistEditClientImpl(
     }
 
     override suspend fun createPlaylist(title: String, description: String?): Playlist {
-        val settings = settings ?: throw Exception("Settings unavailable")
-        val playlist = Playlist(
-            id = Prefixes.newLocalId(),
-            title = title,
-            isEditable = true,
-            description = description,
-            creationDate = Date(System.currentTimeMillis()),
-        )
-        LocalPlaylistStore.add(settings, playlist)
-        LocalPlaylistTracksStore.setTracks(settings, playlist.id, emptyList())
-        Logger.d("PlaylistEdit", "createPlaylist: ${playlist.id} - $title")
-        return playlist
+        // Create on JioSaavn only when the user is viewing the Saavn tab AND is
+        // logged in. Otherwise, create locally. Null tab (before Library has been
+        // opened) defaults to local.
+        val useSaavn = Saavn.currentLibraryTabId == "saavn" && SaavnSession.userId != null
+
+        if (!useSaavn) {
+            // ---- Local ----
+            val settings = settings ?: throw Exception("Settings unavailable")
+            val playlist = Playlist(
+                id = Prefixes.newLocalId(),
+                title = title,
+                isEditable = true,
+                description = description,
+                creationDate = Date(System.currentTimeMillis()),
+            )
+            LocalPlaylistStore.add(settings, playlist)
+            LocalPlaylistTracksStore.setTracks(settings, playlist.id, emptyList())
+            Logger.d("PlaylistEdit", "createPlaylist (local): ${playlist.id} - $title")
+            return playlist
+        }
+
+        // ---- Saavn ----
+        if (!description.isNullOrBlank()) {
+            Logger.w("PlaylistEdit", "Saavn playlists don't support descriptions — ignoring")
+        }
+
+        Logger.d("PlaylistEdit", "createPlaylist (saavn): title=$title")
+
+        val response = try {
+            api.playlistEdit.create(name = title, contents = "", share = true)
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            Logger.e("PlaylistEdit", "Failed to create Saavn playlist", e)
+            throw e
+        }
+
+        response.requireSuccess("playlist.create")
+
+        return parser.playlist.parseCreatedPlaylist(
+            response = response,
+        ) ?: throw Exception("playlist.create: failed to parse new playlist")
+
     }
 
     override suspend fun deletePlaylist(playlist: Playlist) {

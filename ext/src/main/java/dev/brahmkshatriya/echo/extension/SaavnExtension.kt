@@ -79,6 +79,19 @@ object Saavn {
 
     /** Album cache + loader, shared by `AlbumClientImpl` and `TrackClientImpl`. */
     val albumService by lazy { AlbumService(api, parser, appScope) }
+
+    /**
+     * The id of the library tab currently being viewed ("local" or "saavn").
+     *
+     * Written by `LibraryFeedClientImpl` when the user switches tabs; read by
+     * `PlaylistEditClientImpl.createPlaylist` to decide whether to create a new
+     * playlist locally or on JioSaavn.
+     *
+     * `null` before the user has ever opened the Library tab. Consumers should
+     * treat `null` as "local" (safe default — works without login).
+     */
+    var currentLibraryTabId: String? = null
+
 }
 
 
