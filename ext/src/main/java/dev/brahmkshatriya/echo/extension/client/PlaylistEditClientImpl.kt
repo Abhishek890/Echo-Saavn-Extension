@@ -1,6 +1,6 @@
 package dev.brahmkshatriya.echo.extension.client
 
-import dev.brahmkshatriya.echo.common.clients.PlaylistEditClient
+import dev.brahmkshatriya.echo.common.clients.PlaylistEditPrivacyClient
 import dev.brahmkshatriya.echo.common.models.Track
 import dev.brahmkshatriya.echo.common.models.Playlist
 import dev.brahmkshatriya.echo.common.models.Shelf
@@ -30,7 +30,7 @@ import dev.brahmkshatriya.echo.extension.utils.requireSuccess
 class PlaylistEditClientImpl(
     private val api: JioSaavnApi,
     private val parser: JioSaavnParser
-) : PlaylistEditClient {
+) : PlaylistEditPrivacyClient {
 
     private val settings get() = SaavnSettings.settings
 
@@ -479,4 +479,46 @@ class PlaylistEditClientImpl(
             invalidateCache()
         }
     }
+
+    // ===== PLAYLIST EDIT PRIVACY CLIENT =====
+    // Note: this is just placeholder since it is not implemented in Echo
+
+    override suspend fun setPrivacy(playlist: Playlist, isPrivate: Boolean) {
+        // Liked Songs — read-only
+        if (Prefixes.isSavedTracksPlaylist(playlist.id)) return
+
+        // Local playlist
+        if (Prefixes.isLocal(playlist.id)) {
+            return
+        }
+
+        // Saavn playlist — must be owned
+        val currentUser = SaavnSession.userId
+        val uid = playlist.extras["uid"].orEmpty()
+        if (currentUser == null || uid.isBlank() || uid != currentUser) {
+            throw ClientException.NotSupported("setPrivacy")
+        }
+
+        Logger.d("PlaylistEdit", "setPrivacy (saavn): ${playlist.id} -> private=$isPrivate")
+
+        try {
+            val response = if (isPrivate) {
+                api.playlistEdit.makePrivate(playlist.id)
+            } else {
+                api.playlistEdit.makePublic(playlist.id)
+            }
+            // Both endpoints return {"status": "success"} (not "ok").
+            response.requireSuccess(
+                if (isPrivate) "playlist.makePrivate" else "playlist.makePublic"
+            )
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            Logger.e("PlaylistEdit", "Failed to set privacy for ${playlist.id}", e)
+            throw e
+        } finally {
+            invalidateCache()
+        }
+    }
+
 }

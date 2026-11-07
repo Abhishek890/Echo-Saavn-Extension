@@ -26,7 +26,7 @@ class PlaylistParser(
             id = id,
             title = decodeHtml(obj["title"]?.jsonPrimitive?.content ?: ""),
             isEditable = false,
-            isPrivate = false,
+            isPrivate = moreInfo?.get("share")?.jsonPrimitive?.content == "0",
             cover = convertImageUrl(image).toImageHolder(),
             trackCount = songCount.toLongOrNull(),
             subtitle = decodeHtml(obj["subtitle"]?.jsonPrimitive?.content ?: ""),

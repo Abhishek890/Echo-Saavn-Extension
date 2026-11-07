@@ -151,7 +151,7 @@ class SaavnExtension : ExtensionClient,
     LibraryFeedClient by LibraryFeedClientImpl(Saavn.api, Saavn.parser),
 
     // ===== Playlist editing (local + JioSaavn playlists) =====
-    PlaylistEditClient by PlaylistEditClientImpl(Saavn.api, Saavn.parser),
+    PlaylistEditPrivacyClient by PlaylistEditClientImpl(Saavn.api, Saavn.parser),
 
     // ===== Radio (endless queue) =====
     RadioClient by RadioClientImpl(Saavn.radioService),
