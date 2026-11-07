@@ -92,7 +92,11 @@ class PlaylistEditClientImpl(
 
     private fun applyEditable(playlist: Playlist): Playlist {
         val editable = isOwnedByCurrentUser(playlist)
-        return playlist.copy(isEditable = editable)
+        return playlist.copy(
+            isEditable = editable,
+            // Owned playlists can't be followed (nothing to follow); others can.
+            isFollowable = !editable,
+        )
     }
 
     // ===== LOAD TRACKS =====
