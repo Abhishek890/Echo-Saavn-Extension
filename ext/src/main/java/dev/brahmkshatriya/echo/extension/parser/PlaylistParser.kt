@@ -41,9 +41,12 @@ class PlaylistParser(
     }
 
     fun parsePlaylistTracks(obj: JsonObject): List<Track> {
-        return obj["list"]?.jsonArray?.mapNotNull {
-            trackParser.parseSongToTrack(it.jsonObject)
-        } ?: emptyList()
+        // JioSaavn is inconsistent: an empty playlist returns "list": [] in some
+        // responses and "list": "" in others. Accept both as "empty".
+        val listElement = obj["list"] as? JsonArray ?: return emptyList()
+        return listElement.mapNotNull {
+            (it as? JsonObject)?.let(trackParser::parseSongToTrack)
+        }
     }
 
     fun parsePlaylistResults(obj: JsonObject): List<Playlist> {

@@ -5,21 +5,27 @@ import kotlinx.serialization.json.JsonObject
 /**
  * JioSaavn playlist write endpoints (authenticated).
  *
- * Covers the user's own playlists — listing, adding/removing tracks, and reordering.
- * Public playlist reads (search, detail fetch) live in [PlaylistApi]; this class is
- * exclusively for mutations.
+ * Covers the user's own playlists:
+ * - [listMyPlaylists] — read the list of playlists the user owns
+ * - [create] / [delete] — lifecycle
+ * - [rename] / [makePrivate] / [makePublic] — metadata and privacy
+ * - [add] / [remove] / [save] — track membership and ordering
+ *
+ * Public playlist reads (search, detail fetch) live in [PlaylistApi]; this
+ * class is exclusively for mutations and user-scoped reads.
  *
  * ### Ownership requirement
  *
  * Every mutation here requires the playlist to be **owned by the current user**.
- * The server enforces this — non-owned playlists return an error status. Ownership
- * is determined by comparing `Playlist.extras["uid"]` to
+ * The server enforces this — non-owned playlists return an error status.
+ * Ownership is determined by comparing `Playlist.extras["uid"]` to
  * [dev.brahmkshatriya.echo.extension.SaavnSession.userId] in
  * `PlaylistEditClientImpl` before calling these endpoints.
  *
  * ### The `contents` encoding
  *
- * [add] and [save] take a `contents` string in JioSaavn's custom encoding:
+ * [add] and [save] (and optionally [create]) take a `contents` string in
+ * JioSaavn's custom encoding:
  *
  *     ~~<songId>~<language>^~~<songId>~<language>^...
  *
@@ -30,11 +36,13 @@ import kotlinx.serialization.json.JsonObject
  * Callers should use `PlaylistEditClientImpl.encodeTracks(...)` rather than
  * constructing this manually.
  *
- * ### Status values
+ * ### Status values (inconsistent)
  *
- * [listMyPlaylists], [add], [remove], [save] return `{"status": "ok"}` on success.
- * Note this differs from [LibraryApi] / [FollowApi], which return `"success"`.
- * The `requireSuccess` helper in `utils` accepts both.
+ * - `"ok"` — [listMyPlaylists], [create], [rename], [delete], [add], [remove], [save]
+ * - `"success"` — [makePrivate], [makePublic]
+ *
+ * The `requireSuccess` helper in `utils` accepts both, so callers can use it
+ * uniformly without branching on endpoint.
  *
  * @see PlaylistApi
  * @see dev.brahmkshatriya.echo.extension.client.PlaylistEditClientImpl
@@ -140,6 +148,135 @@ class PlaylistEditApi : AuthenticatedBaseApi() {
                 "n" to n.toString(),
                 "contents" to contents,
             ),
+        )
+
+    /**
+     * Creates a new playlist owned by the current user.
+     *
+     * `contents=""` (empty) creates an empty playlist; populate it later with
+     * [add]. `share=true` makes the playlist publicly shareable (visible to
+     * anyone with the link) — JioSaavn has no per-invite sharing, so public is
+     * the only "shareable" state.
+     *
+     * @param name the playlist name.
+     * @param contents encoded initial tracks (see class header for the format).
+     *   Pass `""` for an empty playlist. Multiple tracks can be provided on
+     *   creation by joining entries with `^` — same format as [add].
+     * @return a response with `{"status": "ok"}` and a `details` object
+     *   containing the newly-created playlist's metadata (id, title, cover,
+     *   uid, contents, …). The new playlist's id is `.details.listid` or
+     *   `.details.id` — verify against a real response before wiring up
+     *   `createPlaylist` in the client.
+     */
+    suspend fun create(
+        name: String,
+        contents: String = "",
+        share: Boolean = true,
+    ): JsonObject =
+        executeAuthed(
+            call = "playlist.create",
+            params = mapOf(
+                "listname" to name,
+                "contents" to contents,
+                "share" to share.toString(),
+            ),
+        )
+
+    /**
+     * Renames an existing playlist owned by the current user.
+     *
+     * @param listId the numeric playlist id (NOT the token).
+     * @param name the new playlist name.
+     * @return a response with `{"status": "ok"}` on success.
+     */
+    suspend fun rename(listId: String, name: String): JsonObject =
+        executeAuthed(
+            call = "playlist.rename",
+            params = mapOf(
+                "listid" to listId,
+                "listname" to name,
+            ),
+        )
+
+    /**
+     * Makes a playlist private (visible only to the owner).
+     *
+     * Note: the success status for this endpoint is `"success"`, not `"ok"` —
+     * inconsistent with the other playlist write endpoints. The `requireSuccess`
+     * helper accepts both values, so callers don't need to special-case this.
+     *
+     * @param listId the numeric playlist id.
+     * @return a response with `{"status": "success"}` on success.
+     */
+    suspend fun makePrivate(listId: String): JsonObject =
+        executeAuthed(
+            call = "playlist.makePrivate",
+            params = mapOf("listid" to listId),
+        )
+
+    /**
+     * Makes a playlist public (shareable via link).
+     *
+     * Note: same status value as [makePrivate] — `"success"`, not `"ok"`.
+     *
+     * @param listId the numeric playlist id.
+     * @return a response with `{"status": "success"}` on success.
+     */
+    suspend fun makePublic(listId: String): JsonObject =
+        executeAuthed(
+            call = "playlist.makePublic",
+            params = mapOf("listid" to listId),
+        )
+
+
+    companion object {
+        /**
+         * Static `X-Request-Key` header required by JioSaavn's authenticated
+         * delete endpoint.
+         *
+         * This value was extracted from the JioSaavn web client's request
+         * headers in DevTools. It is NOT account-specific — the same value is
+         * sent for every user and survives logout/login, so it appears to be a
+         * global constant baked into JioSaavn's JS bundle.
+         *
+         * ### Fragility warning
+         *
+         * JioSaavn may rotate this value (e.g. on a web client release). If it
+         * changes, CSRF-protected writes fail with
+         * `{"error":{"code":"INVALID_CSRF","msg":"Invalid CSRF Token"}}`.
+         *
+         * To re-extract: open JioSaavn in a browser, log in, open DevTools →
+         * Network, perform the failing operation (e.g. delete a playlist), and
+         * copy the `X-Request-Key` header from the failing request.
+         *
+         * TODO: If this becomes unstable, extract the key dynamically by
+         *  fetching JioSaavn's web client JS and parsing it — see
+         *  https://github.com/HemanthJabalpuri/Echo-Saavn-Extension/issues
+         */
+        private const val X_REQUEST_KEY =
+            "8ea50be8ddcaacb1ac7d19610702e54be1c1b560c4762b0bbb82e284260bc9a6"
+    }
+
+    /**
+     * Deletes a playlist owned by the current user.
+     *
+     * **Irreversible** — the playlist and its contents are removed from the
+     * user's account. Callers should confirm with the user before invoking.
+     *
+     * ### CSRF requirement
+     *
+     * This endpoint requires the `X-Request-Key` header (see [X_REQUEST_KEY]).
+     * Without it, the server rejects the request with `INVALID_CSRF`.
+     *
+     * @param listId the numeric playlist id.
+     * @return the response (may contain `.details.more_info.contents` or be
+     *   empty on success).
+     */
+    suspend fun delete(listId: String): JsonObject =
+        executeAuthed(
+            call = "playlist.delete",
+            params = mapOf("listid" to listId),
+            extraHeaders = mapOf("X-Request-Key" to X_REQUEST_KEY),
         )
 
 }

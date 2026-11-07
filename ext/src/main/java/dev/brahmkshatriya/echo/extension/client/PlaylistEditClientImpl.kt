@@ -276,23 +276,59 @@ class PlaylistEditClientImpl(
     }
 
     override suspend fun deletePlaylist(playlist: Playlist) {
-        if (!Prefixes.isLocal(playlist.id)) {
-            throw ClientException.NotSupported("deletePlaylist")
+        // Local playlist
+        if (Prefixes.isLocal(playlist.id)) {
+            val settings = settings ?: return
+            LocalPlaylistStore.remove(settings, playlist.id)
+            LocalPlaylistTracksStore.delete(settings, playlist.id)
+            Logger.d("PlaylistEdit", "deletePlaylist (local): ${playlist.id}")
+            return
         }
-        val settings = settings ?: return
-        LocalPlaylistStore.remove(settings, playlist.id)
-        LocalPlaylistTracksStore.delete(settings, playlist.id)
-        Logger.d("PlaylistEdit", "deletePlaylist: ${playlist.id}")
+
+        // Saavn playlist
+        Logger.d("PlaylistEdit", "deletePlaylist (saavn): ${playlist.id}")
+
+        try {
+            val response = api.playlistEdit.delete(playlist.id)
+            response.requireSuccess("playlist.delete")
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            Logger.e("PlaylistEdit", "Failed to delete playlist ${playlist.id}", e)
+            throw e
+        } finally {
+            invalidateCache()
+        }
     }
 
     override suspend fun editPlaylistMetadata(playlist: Playlist, title: String, description: String?) {
-        if (!Prefixes.isLocal(playlist.id)) {
-            throw ClientException.NotSupported("editPlaylistMetadata")
+        // Local playlist
+        if (Prefixes.isLocal(playlist.id)) {
+            val settings = settings ?: return
+            val updated = playlist.copy(title = title, description = description)
+            LocalPlaylistStore.add(settings, updated)
+            Logger.d("PlaylistEdit", "editPlaylistMetadata (local): ${playlist.id} -> $title")
+            return
         }
-        val settings = settings ?: return
-        val updated = playlist.copy(title = title, description = description)
-        LocalPlaylistStore.add(settings, updated)
-        Logger.d("PlaylistEdit", "editPlaylistMetadata: ${playlist.id} -> $title")
+
+        // Saavn playlist
+        Logger.d("PlaylistEdit", "editPlaylistMetadata (saavn): ${playlist.id} -> $title")
+
+        try {
+            val response = api.playlistEdit.rename(playlist.id, title)
+            response.requireSuccess("playlist.rename")
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            Logger.e("PlaylistEdit", "Failed to rename playlist ${playlist.id}", e)
+            throw e
+        } finally {
+            invalidateCache()
+        }
+
+        // Note: `playlist.rename` only handles the title. JioSaavn has no
+        // equivalent endpoint for editing a playlist's description, so the
+        // `description` parameter is ignored for Saavn playlists.
     }
 
     private fun encodeTracks(tracks: List<Track>): String =
