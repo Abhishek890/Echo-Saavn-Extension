@@ -228,55 +228,38 @@ class PlaylistEditApi : AuthenticatedBaseApi() {
             params = mapOf("listid" to listId),
         )
 
-
-    companion object {
-        /**
-         * Static `X-Request-Key` header required by JioSaavn's authenticated
-         * delete endpoint.
-         *
-         * This value was extracted from the JioSaavn web client's request
-         * headers in DevTools. It is NOT account-specific — the same value is
-         * sent for every user and survives logout/login, so it appears to be a
-         * global constant baked into JioSaavn's JS bundle.
-         *
-         * ### Fragility warning
-         *
-         * JioSaavn may rotate this value (e.g. on a web client release). If it
-         * changes, CSRF-protected writes fail with
-         * `{"error":{"code":"INVALID_CSRF","msg":"Invalid CSRF Token"}}`.
-         *
-         * To re-extract: open JioSaavn in a browser, log in, open DevTools →
-         * Network, perform the failing operation (e.g. delete a playlist), and
-         * copy the `X-Request-Key` header from the failing request.
-         *
-         * TODO: If this becomes unstable, extract the key dynamically by
-         *  fetching JioSaavn's web client JS and parsing it — see
-         *  https://github.com/HemanthJabalpuri/Echo-Saavn-Extension/issues
-         */
-        private const val X_REQUEST_KEY =
-            "8ea50be8ddcaacb1ac7d19610702e54be1c1b560c4762b0bbb82e284260bc9a6"
-    }
-
     /**
      * Deletes a playlist owned by the current user.
      *
      * **Irreversible** — the playlist and its contents are removed from the
-     * user's account. Callers should confirm with the user before invoking.
+     * user's account.
      *
      * ### CSRF requirement
      *
-     * This endpoint requires the `X-Request-Key` header (see [X_REQUEST_KEY]).
-     * Without it, the server rejects the request with `INVALID_CSRF`.
+     * This endpoint requires a user-supplied `X-Request-Key` header. The key is
+     * account-specific — the value that works for one JioSaavn account may fail
+     * with `INVALID_CSRF` for another. It cannot be hardcoded and must be entered
+     * by the user via settings (see [SaavnSettings.xRequestKey]).
      *
-     * @param listId the numeric playlist id.
-     * @return the response (may contain `.details.more_info.contents` or be
-     *   empty on success).
+     * Callers must check the key exists before invoking; if absent, the operation
+     * should be reported as unsupported rather than attempted.
+     *
+     * ### Response
+     *
+     * Returns a response with a success field on completion. Without
+     * `X-Request-Key`, the server instead returns
+     * `{"error": {"code": "INVALID_CSRF", ...}}`.
+     *
+     * @param listId the numeric playlist id (NOT the token).
+     * @param xRequestKey the user's `X-Request-Key` header value, from
+     *   [SaavnSettings.xRequestKey]. Must be non-blank and 64 hex characters.
+     * @return the response.
      */
-    suspend fun delete(listId: String): JsonObject =
+    suspend fun delete(listId: String, xRequestKey: String): JsonObject =
         executeAuthed(
             call = "playlist.delete",
             params = mapOf("listid" to listId),
-            extraHeaders = mapOf("X-Request-Key" to X_REQUEST_KEY),
+            extraHeaders = mapOf("X-Request-Key" to xRequestKey),
         )
 
 }

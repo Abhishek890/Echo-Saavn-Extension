@@ -320,11 +320,18 @@ class PlaylistEditClientImpl(
         }
 
         // Saavn playlist
+
+        // CSRF-protected endpoint — requires a user-provided X-Request-Key
+        val xRequestKey = SaavnSettings.xRequestKey()
+            ?: throw ClientException.NotSupported("deletePlaylist")
+
         Logger.d("PlaylistEdit", "deletePlaylist (saavn): ${playlist.id}")
 
         try {
-            val response = api.playlistEdit.delete(playlist.id)
+            val response = api.playlistEdit.delete(playlist.id, xRequestKey)
             response.requireSuccess("playlist.delete")
+        } catch (e: ClientException) {
+            throw e
         } catch (e: kotlinx.coroutines.CancellationException) {
             throw e
         } catch (e: Exception) {

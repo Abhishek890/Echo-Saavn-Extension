@@ -19,6 +19,7 @@ object SettingsKeys {
     const val AUTO_RADIO_ENABLED = "auto_radio_enabled"
     const val RICH_SHARE_ENABLED = "rich_share_enabled"
     const val CREATE_ON_SAAVN = "create_on_saavn"
+    const val X_REQUEST_KEY = "x_request_key"
 }
 
 /**
@@ -129,4 +130,30 @@ object SaavnSettings {
      */
     fun createOnSaavn(): Boolean =
         settings?.getBoolean(SettingsKeys.CREATE_ON_SAAVN) ?: false
+
+    /**
+     * User-provided `X-Request-Key` header value, required by JioSaavn's CSRF-protected
+     * write endpoints (delete playlist).
+     *
+     * The key appears to be account-specific — what works for one JioSaavn account may
+     * fail with `INVALID_CSRF` for another. Users who need these features must extract
+     * the key from their own browser session:
+     *
+     * 1. Open JioSaavn in a browser, log in.
+     * 2. Open DevTools → Network.
+     * 3. Perform the playlist delete operation.
+     * 4. Copy the `X-Request-Key` header from the __call=playlist.delete request.
+     *
+     * Returns `null` if unset or malformed (not 64 hex characters). Callers should
+     * treat `null` as "CSRF-protected operations not available."
+     */
+    fun xRequestKey(): String? {
+        val raw = settings?.getString(SettingsKeys.X_REQUEST_KEY)?.trim()
+        if (raw.isNullOrBlank()) return null
+        // The key is a 64-character hex string. Reject anything else (typos,
+        // whitespace, partial pastes) so we don't send garbage to the server.
+        if (raw.length != 64) return null
+        if (!raw.all { it in '0'..'9' || it in 'a'..'f' || it in 'A'..'F' }) return null
+        return raw
+    }
 }

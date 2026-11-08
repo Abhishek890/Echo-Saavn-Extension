@@ -197,6 +197,14 @@ class SaavnExtension : ExtensionClient,
                 summary = "Create new playlists on your JioSaavn account instead of locally",
                 defaultValue = false
             ),
+            SettingTextInput(
+                title = "JioSaavn X-Request-Key",
+                key = SettingsKeys.X_REQUEST_KEY,
+                summary = "Required for deleting of JioSaavn playlists. " +
+                          "Extract from your browser's DevTools (Network tab) while performing the " +
+                          "delete operation on jiosaavn.com.",
+                defaultValue = null,
+            ),
         )
     }
 
