@@ -7,12 +7,11 @@ import dev.brahmkshatriya.echo.common.models.Shelf
 import dev.brahmkshatriya.echo.common.models.Track
 import dev.brahmkshatriya.echo.common.models.Feed.Companion.toFeed
 
-import kotlinx.serialization.json.*
-
 import dev.brahmkshatriya.echo.extension.JioSaavnApi
 import dev.brahmkshatriya.echo.extension.JioSaavnParser
 import dev.brahmkshatriya.echo.extension.service.AlbumService
 import dev.brahmkshatriya.echo.extension.utils.Logger
+import dev.brahmkshatriya.echo.extension.utils.Extras
 
 class AlbumClientImpl(
     private val api: JioSaavnApi,
@@ -35,10 +34,7 @@ class AlbumClientImpl(
         val shelves = mutableListOf<Shelf>()
 
         // ===== ARTISTS SHELF =====
-        val artistMapJson = response["more_info"]?.jsonObject
-            ?.get("artistMap")?.jsonObject
-            ?.toString()
-        val allArtists = parser.artist.parseAllArtistsFromExtras(artistMapJson)
+        val allArtists = parser.artist.parseAllArtistsFromExtras(album.extras[Extras.ARTIST_MAP])
         if (allArtists.isNotEmpty()) {
             shelves.add(
                 Shelf.Lists.Items(
@@ -71,10 +67,7 @@ class AlbumClientImpl(
         }
 
         // ===== TRENDING ALBUMS SHELF =====
-        val language_t = response["modules"]?.jsonObject
-            ?.get("currentlyTrending")?.jsonObject
-            ?.get("source_params")?.jsonObject
-            ?.get("entity_language")?.jsonPrimitive?.content
+        val language_t = parser.album.parseTrendingLanguage(response)
 
         if (!language_t.isNullOrBlank()) {
             try {
@@ -98,8 +91,8 @@ class AlbumClientImpl(
         }
 
         // ===== TOP ALBUMS FROM SAME YEAR =====
-        val year = response["year"]?.jsonPrimitive?.content
-        val language = response["language"]?.jsonPrimitive?.content
+        val year = album.extras["year"]
+        val language = album.extras["language"]
         if (!year.isNullOrBlank() && !language.isNullOrBlank()) {
             try {
                 val yearResponse = api.album.getTopAlbumsOfYear(year, language)

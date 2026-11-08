@@ -13,6 +13,7 @@ object LocalPlaylistStore : LocalStore<Playlist>() {
         json.putCommonFields(item)
         item.description?.let { json.put("description", it) }
         json.put("isPrivate", item.isPrivate)
+        json.put("isEditable", item.isEditable)
         item.creationDate?.let { json.put("creationDate", it.epochTimeMs) }
     }
 
@@ -23,11 +24,13 @@ object LocalPlaylistStore : LocalStore<Playlist>() {
             title = common.title,
             subtitle = common.subtitle,
             cover = common.cover,
-            isEditable = true,
+            isEditable = obj["isEditable"]?.jsonPrimitive?.booleanOrNull ?: true,
+            isSaveable = !Prefixes.isSavedTracksPlaylist(common.id),
             isPrivate = obj["isPrivate"]?.jsonPrimitive?.booleanOrNull ?: false,
             description = obj["description"]?.jsonPrimitive?.content,
             creationDate = obj["creationDate"]?.jsonPrimitive?.longOrNull?.let { Date(it) },
             extras = mapOf(Extras.PERMA_URL to common.permaUrl)
         )
     }
+
 }

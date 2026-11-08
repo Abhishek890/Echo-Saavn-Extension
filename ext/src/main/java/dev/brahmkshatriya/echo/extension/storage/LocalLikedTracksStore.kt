@@ -11,17 +11,11 @@ object LocalLikedTracksStore : LocalStore<Track>() {
 
     override fun serializeItem(item: Track, json: JsonObjectBuilder) {
         json.putCommonFields(item)
+        json.putRichTrackFields(item)
     }
 
     override fun deserializeItem(obj: JsonObject): Track? {
         val common = obj.parseCommonFields() ?: return null
-        return Track(
-            id = common.id,
-            title = common.title,
-            subtitle = common.subtitle,
-            cover = common.cover,
-            extras = mapOf(Extras.PERMA_URL to common.permaUrl),
-            streamables = emptyList()
-        )
+        return obj.parseRichTrackFields(common)
     }
 }

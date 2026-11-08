@@ -11,7 +11,7 @@ import dev.brahmkshatriya.echo.extension.utils.Extras
 import dev.brahmkshatriya.echo.extension.utils.Logger
 import dev.brahmkshatriya.echo.extension.utils.runSafe
 import dev.brahmkshatriya.echo.extension.service.RadioService
-import dev.brahmkshatriya.echo.extension.SaavnDependencies
+import dev.brahmkshatriya.echo.extension.SaavnSettings
 
 /*
  * We are supporting radio only for tracks
@@ -23,7 +23,7 @@ class RadioClientImpl(
 ) : RadioClient {
 
     override suspend fun radio(item: EchoMediaItem, context: EchoMediaItem?): Radio {
-        if (!SaavnDependencies.isAutoRadioEnabled()) {
+        if (!SaavnSettings.isAutoRadioEnabled()) {
             return Radio(
                 id = "radio_disabled_${item.id}",
                 title = "",

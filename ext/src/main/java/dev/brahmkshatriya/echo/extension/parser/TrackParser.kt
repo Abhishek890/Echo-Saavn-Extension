@@ -70,8 +70,12 @@ class TrackParser : BaseParser() {
             subtitle = decodeHtml(obj["subtitle"]?.jsonPrimitive?.content ?: ""),
             extras = mapOf(
                 Extras.PERMA_URL to (obj["perma_url"]?.jsonPrimitive?.content ?: ""),
-                Extras.OTHER_ARTISTS to (artistMap?.toString() ?: "{}"),
+                Extras.ARTIST_MAP to (artistMap?.toString() ?: "{}"),
                 "hasLyrics" to (moreInfo?.get("has_lyrics")?.jsonPrimitive?.content ?: "false"),
+                "composer" to (moreInfo?.get("music")?.jsonPrimitive?.content ?: ""),
+                "year" to (obj["year"]?.jsonPrimitive?.content ?: ""),
+                "release_date_raw" to (moreInfo?.get("release_date")?.jsonPrimitive?.content ?: ""),
+                "language" to (obj["language"]?.jsonPrimitive?.content ?: ""),
             ),
             streamables = streamables
         )
@@ -94,4 +98,22 @@ class TrackParser : BaseParser() {
             emptyList()
         }
     }
+
+    /**
+     * Parses a `reco.getreco` response.
+     *
+     * The response is `{ "<songId>": [ ... ] }` — a single top-level key whose
+     * array contains the recommended tracks. The id in the key isn't needed here;
+     * we just take the first array.
+     */
+    fun parseSongReco(obj: JsonObject): List<Track> {
+        return try {
+            val songsArray = obj.values.firstOrNull { it is JsonArray }?.jsonArray
+                ?: return emptyList()
+            songsArray.mapNotNull { parseSongToTrack(it.jsonObject) }
+        } catch (e: Exception) {
+            emptyList()
+        }
+    }
+
 }

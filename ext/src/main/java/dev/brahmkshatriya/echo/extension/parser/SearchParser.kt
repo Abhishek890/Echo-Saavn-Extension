@@ -31,11 +31,11 @@ class SearchParser : BaseParser() {
 
     private fun parseSearchItem(obj: JsonObject): EchoMediaItem? {
         val type = obj["type"]?.jsonPrimitive?.content ?: return null
-        val permaUrl = obj["perma_url"]?.jsonPrimitive?.content ?: ""
+        val permaUrl = obj["url"]?.jsonPrimitive?.content ?: ""
         val id = obj["id"]?.jsonPrimitive?.content ?: return null
 
         val title = decodeHtml(obj["title"]?.jsonPrimitive?.content ?: "")
-        val subtitle = decodeHtml(obj["subtitle"]?.jsonPrimitive?.content ?: "")
+        val subtitle = decodeHtml(obj["description"]?.jsonPrimitive?.content ?: "")
         val cover = convertImageUrl(obj["image"]?.jsonPrimitive?.content).toImageHolder()
         val extras = mapOf(Extras.PERMA_URL to permaUrl)
 

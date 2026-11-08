@@ -19,22 +19,22 @@ val LANGUAGES = listOf(
     "Assamese"
 )
 
+/**
+ * JioSaavn API context values (`ctx` query parameter).
+ *
+ * The `ctx` parameter selects which client context the server responds as.
+ * Different contexts expose different endpoints and response shapes.
+ */
+object Ctx {
+    /** Web player context. Used by most endpoints. */
+    const val WEB = "web6dot0"
+
+    /** Android app context. Required by radio & track recommendations endpoints. */
+    const val ANDROID = "android"
+}
+
 object Extras {
     const val PERMA_URL = "permaUrl"
-    const val OTHER_ARTISTS = "otherArtistsJson"
     const val ARTIST_MAP = "artistMapJson"
     const val STATION_ID = "stationId"
-}
-
-object Prefixes {
-    const val LOCAL = "local_"
-    
-    fun newLocalId(): String = "$LOCAL${System.currentTimeMillis()}"
-    
-    fun isLocal(id: String): Boolean = id.startsWith(LOCAL)
-}
-
-object SettingsKeys {
-    const val DEFAULT_HOME_LANGUAGES = "default_home_languages"
-    const val AUTO_RADIO_ENABLED = "auto_radio_enabled"
 }

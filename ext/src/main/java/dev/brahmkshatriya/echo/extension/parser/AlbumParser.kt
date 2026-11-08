@@ -38,7 +38,9 @@ class AlbumParser(
             isRadioSupported = false,
             extras = mapOf(
                 Extras.PERMA_URL to (obj["perma_url"]?.jsonPrimitive?.content ?: ""),
-                Extras.ARTIST_MAP to (artistMap?.toString() ?: "{}")
+                Extras.ARTIST_MAP to (artistMap?.toString() ?: "{}"),
+                "year" to (obj["year"]?.jsonPrimitive?.content ?: ""),
+                "language" to (obj["language"]?.jsonPrimitive?.content ?: ""),
             )
         )
     }
@@ -62,5 +64,8 @@ class AlbumParser(
             null
         }
     }
+
+    fun parseTrendingLanguage(response: JsonObject): String? =
+        parseModuleLanguage(response, "currentlyTrending")
 
 }

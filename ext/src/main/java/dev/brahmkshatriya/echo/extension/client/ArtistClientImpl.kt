@@ -42,53 +42,16 @@ class ArtistClientImpl(
 
         // Try to get token from extras
         var token = artist.getToken()
-        var resolvedArtist = artist
-
-        // If token missing, search by name and match by artist.id
-        // In autocomplete.get (quick search), perma_url is absent, that's why
-        if (token.isBlank()) {
-            Logger.d("ArtistClient", "Token missing for ${artist.name} (id=${artist.id}), searching by name")
-            val matchedArtist = findArtistByName(artist.name, artist.id)
-
-            if (matchedArtist == null) {
-                Logger.e("ArtistClient", "Could not find artist: ${artist.name} (id=${artist.id})")
-                return emptyList<Shelf>().toFeed()
-            }
-
-            // Use the matched artist (has permaUrl in extras)
-            resolvedArtist = matchedArtist
-            // Get token from permaUrl
-            token = resolvedArtist.getToken()
-            if (token.isBlank()) {
-                Logger.e("ArtistClient", "No token in permaUrl for: ${resolvedArtist.name}")
-                return emptyList<Shelf>().toFeed()
-            }
-
-            Logger.d("ArtistClient", "Resolved artist: ${matchedArtist.name} (token=$token)")
-        }
 
         // Fetch details using token
         val response = api.artist.getDetails(
             token = token,
         )
 
-        val feed = buildFeed(resolvedArtist, response)
+        val feed = buildFeed(artist, response)
         cachedArtistId = artist.id
         cachedFeed = feed
         return feed
-    }
-
-    private suspend fun findArtistByName(name: String, numericId: String): Artist? {
-        return try {
-            val response = api.artist.search(name, page = 1, limit = 10)
-            val artists = parser.artist.parseArtistSearchResults(response)
-
-            // Match by numeric ID
-            artists.firstOrNull { it.id == numericId }
-        } catch (e: Exception) {
-            Logger.e("ArtistClient", "Search failed for $name", e)
-            null
-        }
     }
 
     private fun buildFeed(artist: Artist, response: JsonObject): Feed<Shelf> {

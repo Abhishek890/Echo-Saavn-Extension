@@ -2,6 +2,7 @@ package dev.brahmkshatriya.echo.extension.storage
 
 import dev.brahmkshatriya.echo.common.models.Track
 import dev.brahmkshatriya.echo.common.settings.Settings
+
 import kotlinx.serialization.json.*
 
 import dev.brahmkshatriya.echo.extension.utils.Extras
@@ -60,17 +61,11 @@ object LocalPlaylistTracksStore {
 
     private fun serializeTrack(track: Track): JsonObject = buildJsonObject {
         putCommonFields(track)
+        putRichTrackFields(track)
     }
 
     private fun deserializeTrack(obj: JsonObject): Track? {
         val common = obj.parseCommonFields() ?: return null
-        return Track(
-            id = common.id,
-            title = common.title,
-            subtitle = common.subtitle,
-            cover = common.cover,
-            extras = mapOf(Extras.PERMA_URL to common.permaUrl),
-            streamables = emptyList()
-        )
+        return obj.parseRichTrackFields(common)
     }
 }

@@ -8,6 +8,10 @@ import java.util.Base64
 import javax.crypto.Cipher
 import javax.crypto.spec.SecretKeySpec
 
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.contentOrNull
+import kotlinx.serialization.json.jsonPrimitive
+
 private const val DES_KEY = "38346591"
 
 fun decryptUrl(encryptedUrl: String): Map<String, String>? {
@@ -57,6 +61,13 @@ fun parseDate(dateStr: String?): Date? {
 fun String?.extractToken(): String {
     if (this.isNullOrBlank()) return ""
     return substringAfterLast("/").takeIf { it.isNotBlank() } ?: ""
+}
+
+fun JsonObject.requireSuccess(operation: String) {
+    val status = this["status"]?.jsonPrimitive?.contentOrNull
+    if (status != "success" && status != "ok") {
+        throw Exception("$operation failed: status=$status")
+    }
 }
 
 fun EchoMediaItem.getToken(): String = extras[Extras.PERMA_URL].extractToken()
