@@ -17,7 +17,6 @@ import kotlinx.serialization.json.JsonObject
 import dev.brahmkshatriya.echo.extension.JioSaavnApi
 import dev.brahmkshatriya.echo.extension.JioSaavnParser
 import dev.brahmkshatriya.echo.extension.SaavnSession
-import dev.brahmkshatriya.echo.extension.Saavn
 import dev.brahmkshatriya.echo.extension.SaavnSettings
 import dev.brahmkshatriya.echo.extension.storage.LocalPlaylistStore
 import dev.brahmkshatriya.echo.extension.storage.LocalPlaylistTracksStore
@@ -266,10 +265,9 @@ class PlaylistEditClientImpl(
     }
 
     override suspend fun createPlaylist(title: String, description: String?): Playlist {
-        // Create on JioSaavn only when the user is viewing the Saavn tab AND is
-        // logged in. Otherwise, create locally. Null tab (before Library has been
-        // opened) defaults to local.
-        val useSaavn = Saavn.currentLibraryTabId == "saavn" && SaavnSession.userId != null
+        // Decide where to create. Saavn requires login; fall back to local when
+        // logged out even if the setting is on.
+        val useSaavn = SaavnSettings.createOnSaavn() && SaavnSession.userId != null
 
         if (!useSaavn) {
             // ---- Local ----
@@ -337,6 +335,7 @@ class PlaylistEditClientImpl(
         }
     }
 
+    // Seems like playlist metadata editing is not fully supported in Echo
     override suspend fun editPlaylistMetadata(playlist: Playlist, title: String, description: String?) {
         // Local playlist
         if (Prefixes.isLocal(playlist.id)) {

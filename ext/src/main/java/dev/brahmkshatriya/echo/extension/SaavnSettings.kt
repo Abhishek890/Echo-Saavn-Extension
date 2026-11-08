@@ -18,6 +18,7 @@ object SettingsKeys {
     const val DEFAULT_HOME_LANGUAGES = "default_home_languages"
     const val AUTO_RADIO_ENABLED = "auto_radio_enabled"
     const val RICH_SHARE_ENABLED = "rich_share_enabled"
+    const val CREATE_ON_SAAVN = "create_on_saavn"
 }
 
 /**
@@ -114,4 +115,18 @@ object SaavnSettings {
      */
     fun isRichShareEnabled(): Boolean =
         settings?.getBoolean(SettingsKeys.RICH_SHARE_ENABLED) ?: false
+
+    /**
+     * Whether new playlists should be created on the user's JioSaavn account
+     * instead of locally.
+     *
+     * Only effective when logged in — creation falls back to local when
+     * [SaavnSession.userId] is null, regardless of this setting.
+     *
+     * @return `true` if create-on-Saavn is enabled, `false` otherwise. Defaults to
+     *   `false` (local creation is the safer default — it works offline and doesn't
+     *   require an account).
+     */
+    fun createOnSaavn(): Boolean =
+        settings?.getBoolean(SettingsKeys.CREATE_ON_SAAVN) ?: false
 }
